@@ -10,7 +10,7 @@ import (
 
 func TestHealth(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	handler := NewHandler(logger)
+	handler := NewHandler(logger, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rec := httptest.NewRecorder()

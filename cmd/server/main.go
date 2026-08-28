@@ -10,7 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AlexSimanov1/nanograms/internal/application"
 	apphttp "github.com/AlexSimanov1/nanograms/internal/http"
+	"github.com/AlexSimanov1/nanograms/internal/storage"
 )
 
 func main() {
@@ -25,10 +27,14 @@ func run() error {
 	slog.SetDefault(logger)
 
 	addr := envOr("HTTP_ADDR", ":8080")
+	puzzleDir := envOr("PUZZLE_DIR", "data/puzzles")
+
+	repo := storage.NewJSONPuzzleRepository(puzzleDir, logger)
+	service := application.NewPuzzleService(repo)
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           apphttp.NewHandler(logger),
+		Handler:           apphttp.NewHandler(logger, service),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

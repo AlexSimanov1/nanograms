@@ -3,20 +3,29 @@ package http
 import (
 	"log/slog"
 	"net/http"
+
+	"github.com/AlexSimanov1/nanograms/internal/application"
 )
 
+// Handlers holds the dependencies shared by the HTTP API handlers.
+type Handlers struct {
+	log     *slog.Logger
+	service *application.PuzzleService
+}
+
 // NewHandler builds the HTTP handler with all routes registered.
-//
-// Handlers stay thin: they parse input, call the application layer, and map
-// results to responses. No filesystem or domain rules live here.
-func NewHandler(logger *slog.Logger) http.Handler {
+func NewHandler(logger *slog.Logger, service *application.PuzzleService) http.Handler {
+	h := &Handlers{log: logger, service: service}
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
+	mux.HandleFunc("GET /health", h.handleHealth)
+	mux.HandleFunc("GET /api/v1/puzzles", h.handleListPuzzles)
 
 	return mux
+}
+
+func (h *Handlers) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{"status":"ok"}`))
 }

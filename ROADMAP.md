@@ -364,7 +364,7 @@ Application layer не знает, что данные находятся в JSO
 
 Использовать версионированный API: `/api/v1/*`.
 
-### 7.1. List puzzles
+### 7.1. List puzzles — [x]
 
 `GET /api/v1/puzzles`
 
@@ -1073,25 +1073,25 @@ Next:
 
 Completed:
 
-- MVP0 / 6.1
+- MVP0 / 7.1
 
 Tests:
 
-- `go test ./...` — PASS (internal/application: TestPuzzleServiceGet, TestPuzzleServiceGetNotFound, TestPuzzleServiceList)
+- `go test ./...` — PASS (internal/http: TestListPuzzles, TestListPuzzlesServerError, TestHealth)
 - `go vet ./...` — PASS
 - `gofmt` — clean
-- Проверено: internal/application импортирует только domain (acceptance «не знает про JSON» выполнен)
+- `go build ./cmd/server` — PASS
 
 Notes:
 
-- internal/application/service.go: PuzzleService (New, List, Get) — тонкие делегирования в PuzzleRepository; application импортирует только domain.
-- Сентел not-found поднят в domain.ErrPuzzleNotFound (internal/domain/errors.go): storage и application оба зависят от domain и не связаны друг с другом (однонаправленные зависимости).
-- internal/storage/jsonrepository.go: Get возвращает domain.ErrPuzzleNotFound; storage/errors.go удалён (неиспользуемый).
-- Тесты application — через fakeRepo (in-memory stub), storage изолирован, внешних зависимостей нет.
+- internal/http/handlers.go: DTO puzzleDTO (id/title/width/height/difficulty — без hints/solution, чтобы не раскрывать ответ и не отдавать лишнего), handler GET /api/v1/puzzles → {"puzzles":[...]}, при ошибке сервиса → 500.
+- internal/http/server.go: NewHandler(logger, service); регистрация /health и /api/v1/puzzles; Handlers struct.
+- cmd/server/main.go: wiring — PUZZLE_DIR (default data/puzzles) → JSONPuzzleRepository → PuzzleService → NewHandler.
+- Тесты handler — через stub-репозиторий (in-memory), изолированно от storage/файлов.
 
 Next:
 
-- MVP0 / 7.1 — List puzzles (HTTP endpoint)
+- MVP0 / 7.2 — Get puzzle (HTTP endpoint)
 
 ---
 
