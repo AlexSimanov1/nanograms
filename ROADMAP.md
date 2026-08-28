@@ -308,7 +308,7 @@ data/puzzles/
 
 ## 5. MVP0 — PuzzleRepository
 
-### 5.1. Создать repository interface
+### 5.1. Создать repository interface — [x]
 
 Рекомендуемый контракт:
 
@@ -1073,25 +1073,24 @@ Next:
 
 Completed:
 
-- MVP0 / 4.2
+- MVP0 / 5.1
 
 Tests:
 
 - `go test ./...` — PASS
 - `go vet ./...` — PASS
 - `gofmt` — clean
-- Все 4 файла прогнаны через storage.DecodePuzzle при генерации — PASS
 
 Notes:
 
-- data/puzzles: 001.json (5×5 «Cross», easy), 002.json (10×10 «Frame», medium), 003.json (15×15 «Diamond», medium), 004.json (20×20 «Star», hard).
-- rowHints/columnHints вычислены программно из solution (исключены ошибки ручного подсчёта) → гарантирована согласованность hints ↔ solution.
-- Решаемость: узнаваемые симметричные фигуры (крест, рамка, ромб, звезда), не вырожденные.
-- Временный генератор (tools/genpuzzles) после создания файлов удалён — в репо остаются только данные.
+- internal/application/repository.go: интерфейс PuzzleRepository { Get(ctx, id) (*domain.Puzzle, error); List(ctx) ([]domain.Puzzle, error) } — контракт из ROADMAP.
+- Размещён в application-слое (там, где используется), не зависит от JSON-реализации (AR-05).
+- storage будет реализовывать его соответствием методов (импортировать интерфейс не нужно), wiring — в cmd/server.
+- Без CRUD сверх MVP. Тестов нет — тривиальный интерфейс, покроется реализацией и компиляцией в 5.2.
 
 Next:
 
-- MVP0 / 5.1 — создать repository interface
+- MVP0 / 5.2 — реализовать JSONPuzzleRepository
 
 ---
 
