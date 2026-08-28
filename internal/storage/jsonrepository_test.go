@@ -81,8 +81,8 @@ func TestJSONPuzzleRepositoryGet(t *testing.T) {
 func TestJSONPuzzleRepositoryGetMissing(t *testing.T) {
 	repo := newTestRepo(t, t.TempDir())
 	_, err := repo.Get(t.Context(), "nope")
-	if !errors.Is(err, ErrPuzzleNotFound) {
-		t.Fatalf("Get missing: error = %v, want ErrPuzzleNotFound", err)
+	if !errors.Is(err, domain.ErrPuzzleNotFound) {
+		t.Fatalf("Get missing: error = %v, want domain.ErrPuzzleNotFound", err)
 	}
 }
 
@@ -97,8 +97,8 @@ func TestJSONPuzzleRepositoryGetInvalidJSON(t *testing.T) {
 	if err == nil {
 		t.Fatal("Get on invalid JSON: want error, got nil")
 	}
-	if errors.Is(err, ErrPuzzleNotFound) {
-		t.Fatalf("Get on invalid JSON should not be ErrPuzzleNotFound, got %v", err)
+	if errors.Is(err, domain.ErrPuzzleNotFound) {
+		t.Fatalf("Get on invalid JSON should not be domain.ErrPuzzleNotFound, got %v", err)
 	}
 }
 

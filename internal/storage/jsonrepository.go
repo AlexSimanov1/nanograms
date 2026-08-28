@@ -33,7 +33,7 @@ func (r *JSONPuzzleRepository) Get(ctx context.Context, id string) (*domain.Puzz
 	data, err := os.ReadFile(filepath.Join(r.dir, id+".json"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("puzzle %q: %w", id, ErrPuzzleNotFound)
+			return nil, fmt.Errorf("puzzle %q: %w", id, domain.ErrPuzzleNotFound)
 		}
 		return nil, fmt.Errorf("read puzzle %q: %w", id, err)
 	}

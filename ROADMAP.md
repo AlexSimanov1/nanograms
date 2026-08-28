@@ -345,7 +345,7 @@ type PuzzleRepository interface {
 
 ## 6. MVP0 — Application layer
 
-### 6.1. Puzzle service
+### 6.1. Puzzle service — [x]
 
 Создать application service для работы с puzzles.
 
@@ -1073,24 +1073,25 @@ Next:
 
 Completed:
 
-- MVP0 / 5.2
+- MVP0 / 6.1
 
 Tests:
 
-- `go test ./...` — PASS (internal/storage: Get, GetMissing, GetInvalidJSON, List)
+- `go test ./...` — PASS (internal/application: TestPuzzleServiceGet, TestPuzzleServiceGetNotFound, TestPuzzleServiceList)
 - `go vet ./...` — PASS
 - `gofmt` — clean
+- Проверено: internal/application импортирует только domain (acceptance «не знает про JSON» выполнен)
 
 Notes:
 
-- internal/storage/errors.go: ErrPuzzleNotFound (для маппинга в 404 на 7.x).
-- internal/storage/jsonrepository.go: JSONPuzzleRepository(dir, log); Get = id.json → DecodePuzzle → ErrPuzzleNotFound при отсутствии; List = обход *.json, skip битых файлов + warn-лог (не роняет каталог).
-- Compile-time проверка в тестах: JSONPuzzleRepository удовлетворяет application.PuzzleRepository (тест-only импорт, прод-код не связан).
-- Задача выполнена целиком без дробления (по договорённости с пользователем — единый связный пункт).
+- internal/application/service.go: PuzzleService (New, List, Get) — тонкие делегирования в PuzzleRepository; application импортирует только domain.
+- Сентел not-found поднят в domain.ErrPuzzleNotFound (internal/domain/errors.go): storage и application оба зависят от domain и не связаны друг с другом (однонаправленные зависимости).
+- internal/storage/jsonrepository.go: Get возвращает domain.ErrPuzzleNotFound; storage/errors.go удалён (неиспользуемый).
+- Тесты application — через fakeRepo (in-memory stub), storage изолирован, внешних зависимостей нет.
 
 Next:
 
-- MVP0 / 6.1 — Puzzle service (application layer)
+- MVP0 / 7.1 — List puzzles (HTTP endpoint)
 
 ---
 
