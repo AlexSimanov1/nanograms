@@ -6,8 +6,8 @@
 
 const BASE = '/api/v1'
 
-async function request(path) {
-  const res = await fetch(`${BASE}${path}`)
+async function request(path, options) {
+  const res = await fetch(`${BASE}${path}`, options)
   if (!res.ok) {
     const err = new Error(`request failed (${res.status})`)
     err.status = res.status
@@ -26,4 +26,15 @@ export async function fetchPuzzles() {
 // A missing puzzle throws an error with `err.status === 404`.
 export async function fetchPuzzle(id) {
   return request(`/puzzles/${encodeURIComponent(id)}`)
+}
+
+// checkPuzzle asks the backend to verify a solution: `cells` is the
+// height×width grid of booleans (true = filled). The solution never leaves
+// the server; only the verdict { correct } comes back.
+export async function checkPuzzle(id, cells) {
+  return request(`/puzzles/${encodeURIComponent(id)}/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cells }),
+  })
 }

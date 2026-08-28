@@ -62,6 +62,64 @@ func TestPuzzleServiceGetNotFound(t *testing.T) {
 	}
 }
 
+func TestPuzzleServiceCheck(t *testing.T) {
+	base := validPuzzle("t01")
+	correct := base.Solution
+
+	incorrect := make([][]bool, len(correct))
+	for i := range correct {
+		incorrect[i] = append([]bool(nil), correct[i]...)
+	}
+	incorrect[0][0] = !incorrect[0][0]
+
+	service := NewPuzzleService(newFakeRepo(base))
+
+	tests := []struct {
+		name   string
+		id     string
+		cells  [][]bool
+		want   bool
+		wantOK bool
+	}{
+		{"correct solution is solved", "t01", correct, true, true},
+		{"one wrong cell is not solved", "t01", incorrect, false, true},
+		{"unknown puzzle is an error", "nope", correct, false, false},
+		{"wrong row count is invalid", "t01", correct[:4], false, false},
+		{"wrong column count is invalid", "t01", [][]bool{
+			{true, true}, {false, true}, {false, false}, {true, false}, {false, false},
+		}, false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := service.Check(t.Context(), tt.id, tt.cells)
+			if tt.wantOK && err != nil {
+				t.Fatalf("Check() unexpected error: %v", err)
+			}
+			if !tt.wantOK && err == nil {
+				t.Fatalf("Check() expected error, got none")
+			}
+			if got != tt.want {
+				t.Errorf("Check() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPuzzleServiceCheckErrorsAreTyped(t *testing.T) {
+	service := NewPuzzleService(newFakeRepo(validPuzzle("t01")))
+
+	_, err := service.Check(t.Context(), "nope", validPuzzle("t01").Solution)
+	if !errors.Is(err, domain.ErrPuzzleNotFound) {
+		t.Fatalf("missing puzzle: error = %v, want domain.ErrPuzzleNotFound", err)
+	}
+
+	_, err = service.Check(t.Context(), "t01", nil)
+	if !errors.Is(err, ErrInvalidCells) {
+		t.Fatalf("bad shape: error = %v, want application.ErrInvalidCells", err)
+	}
+}
+
 func TestPuzzleServiceList(t *testing.T) {
 	p1 := validPuzzle("t01")
 	p2 := validPuzzle("t02")

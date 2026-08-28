@@ -1072,6 +1072,31 @@ Next:
 
 Completed:
 
+- MVP1 / 13.2 — Реализована проверка решения (server-side check по стратегии 13.1).
+
+Tests:
+
+- `go test ./...` — PASS (домен, application, http; добавлены CheckSolution / Check / check-endpoint тесты).
+- `npm test` (Vitest) — PASS: 19 тестов (добавлены `filledGrid`, `complete`).
+- `npm run build` — PASS (10 модулей).
+- `docker compose build && up`, curl через `:8080` — PASS: точное `solution` → `{"correct":true}`, пустое → `{"correct":false}`, битый JSON/неверная размерность → 400, неизвестный id → 404; свежий bundle `index-DlBPhWe6.js` раздаётся.
+
+Notes:
+
+- **Backend.** `domain.Puzzle.CheckSolution([][]bool) bool` — сравнение filled-клеток с `solution` (крестики/пустые = `false`, не являются частью ответа); неверная размерность → `false`. `application.PuzzleService.Check(ctx,id,cells)` + `ErrInvalidCells` (новая ошибка слоя `application/errors.go`; валидация размерности в сервисе). HTTP: `POST /api/v1/puzzles/{id}/check`, DTO `{cells}` → `{correct}`, маппинг 400/404/500; `solution` не возвращается (проверено тестом на утечку). API.md дополнен контрактом endpoint.
+- **Frontend.** `game.js`: `filledGrid(progress)` (булева сетка заполненных для запроса) и `complete(progress)` (перевод в COMPLETED + `completedAt`, иммутабельно, клетки не трогает). `api.js`: `checkPuzzle(id, cells)`. `puzzle.js`: кнопка «Проверить» — при верном ответе помечает решённым (правка клеток блокируется, `setCell` на COMPLETED кидает), при неверном — некритичное сообщение, прогресс не уничтожается; сбой сети — отдельное сообщение. Уведомление через `aria-live`.
+- **Замечания по объёму.** Полный completion-flow (экран, итоговое время, переход к следующему), персистенция localStorage и таймер — отдельные задачи 14/15/16/19; здесь только базовая сверка и перевод в completed. Крестики (marked) сознательно не влияют на результат.
+
+Next:
+
+- MVP1 / 14 — Progress persistence (localStorage, версия ключа, автозагрузка/сохранение, устойчивость к повреждённым данным).
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
 - MVP1 / 13.1 — Определена стратегия проверки решения: **server-side check**.
 
 Decision (13.1):

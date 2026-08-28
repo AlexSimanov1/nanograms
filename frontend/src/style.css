@@ -129,6 +129,31 @@ body {
   color: #52525b;
 }
 
+/* Action bar: "Проверить" button + verification notice (13.2) */
+
+.actionbar {
+  margin-top: 16px;
+}
+
+.puzzle-notice {
+  min-height: 1.4em;
+  margin-top: 8px;
+  font-size: 1rem;
+}
+
+.puzzle-notice:empty {
+  min-height: 0;
+}
+
+.notice-success {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.notice-error {
+  color: #b91c1c;
+}
+
 /* Board layout: corner | column hints
                      row hints | grid      */
 

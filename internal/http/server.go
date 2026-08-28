@@ -21,6 +21,7 @@ func NewHandler(logger *slog.Logger, service *application.PuzzleService) http.Ha
 	mux.HandleFunc("GET /health", h.handleHealth)
 	mux.HandleFunc("GET /api/v1/puzzles", h.handleListPuzzles)
 	mux.HandleFunc("GET /api/v1/puzzles/{id}", h.handleGetPuzzle)
+	mux.HandleFunc("POST /api/v1/puzzles/{id}/check", h.handleCheckPuzzle)
 
 	return mux
 }

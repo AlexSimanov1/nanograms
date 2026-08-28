@@ -90,3 +90,51 @@ GET /api/v1/puzzles/001
   "error": "puzzle not found"
 }
 ```
+
+---
+
+## `POST /api/v1/puzzles/{id}/check`
+
+Проверка решения игрока. Сравнение выполняется **на сервере**: клиент
+отправляет только свою сетку закрашенных клеток, а `solution` никогда не
+покидает сервер и не возвращается в ответе.
+
+**Example request**
+
+```
+POST /api/v1/puzzles/001/check
+Content-Type: application/json
+
+{
+  "cells": [
+    [true, true, true, true, true],
+    [true, false, true, false, true],
+    [true, false, false, false, false],
+    [true, true, true, false, false],
+    [true, true, false, false, false]
+  ]
+}
+```
+
+`cells` — сетка `height × width` булевых значений: `true` = клетка закрашена
+(filled). Крестики и пустые клетки — `false`: крестик является аннотацией
+игрока и **не** часть ответа.
+
+**Example response — `200 OK`**
+
+```json
+{
+  "correct": true
+}
+```
+
+`correct: false` — закрашенные клетки не совпадают с решением (прогресс игрока
+при этом не теряется).
+
+**Errors**
+
+| Code | Meaning |
+|---|---|
+| `400` | битый JSON или `cells` не `height × width` |
+| `404` | puzzle не найден |
+| `500` | внутренняя ошибка сервера |

@@ -1,6 +1,14 @@
-import { fetchPuzzle } from '../api.js'
+import { checkPuzzle, fetchPuzzle } from '../api.js'
 import { navigate } from '../router.js'
-import { Action, applyAction, CellState, createEmptyProgress } from '../game.js'
+import {
+  Action,
+  CellState,
+  ProgressStatus,
+  applyAction,
+  complete,
+  createEmptyProgress,
+  filledGrid,
+} from '../game.js'
 
 // Puzzle page (MVP0 / 9.x + MVP1 / 10.x + 11). Renders the grid with row and
 // column hints, keeps client-side game state, and handles input: a Fill /
@@ -311,7 +319,10 @@ export function renderPuzzle(container, id) {
         syncToolbar(toolbar, action)
       })
 
+      // A solved puzzle no longer accepts gesture/click edits (13.2); the
+      // board keeps showing the finished state.
       const onCell = (row, col) => {
+        if (current.status === ProgressStatus.COMPLETED) return
         current = applyAction(current, action, row, col)
         const cellEl = content.querySelector(
           `[data-row="${row}"][data-col="${col}"]`,
@@ -319,9 +330,44 @@ export function renderPuzzle(container, id) {
         renderCell(cellEl, current.cells[row][col])
       }
 
+      // "Проверить" asks the server to verify the filled cells. The solution
+      // stays on the server; we only learn correct/incorrect. An incorrect
+      // result never discards the player's progress. (13.2)
+      const notice = document.createElement('div')
+      notice.className = 'puzzle-notice'
+      notice.setAttribute('aria-live', 'polite')
+
+      const checkBtn = document.createElement('button')
+      checkBtn.className = 'button'
+      checkBtn.type = 'button'
+      checkBtn.textContent = 'Проверить'
+      checkBtn.addEventListener('click', async () => {
+        checkBtn.disabled = true
+        try {
+          const { correct } = await checkPuzzle(puzzle.id, filledGrid(current))
+          if (correct) {
+            current = complete(current)
+            notice.textContent = 'Кроссворд решён!'
+            notice.className = 'puzzle-notice notice-success'
+          } else {
+            notice.textContent = 'Есть неверные клетки. Проверьте поле.'
+            notice.className = 'puzzle-notice notice-error'
+            checkBtn.disabled = false
+          }
+        } catch {
+          notice.textContent = 'Не удалось проверить решение. Попробуйте ещё раз.'
+          notice.className = 'puzzle-notice notice-error'
+          checkBtn.disabled = false
+        }
+      })
+
+      const actionBar = document.createElement('div')
+      actionBar.className = 'actionbar'
+      actionBar.append(checkBtn, notice)
+
       heading.textContent = puzzle.title
       heading.after(metaView(puzzle))
-      content.replaceChildren(toolbar, boardView(puzzle, current, onCell))
+      content.replaceChildren(toolbar, boardView(puzzle, current, onCell), actionBar)
     })
     .catch((err) => {
       const message = err && err.message ? err.message : 'неизвестная ошибка'

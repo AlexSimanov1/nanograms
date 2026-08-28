@@ -4,7 +4,9 @@ import {
   CellState,
   ProgressStatus,
   applyAction,
+  complete,
   createEmptyProgress,
+  filledGrid,
   fill,
   mark,
   clear,
@@ -108,6 +110,44 @@ describe('applyAction', () => {
 
   it('rejects an unknown action', () => {
     expect(() => applyAction(makeProgress(), 'erase', 0, 0)).toThrow(/unknown action/)
+  })
+})
+
+describe('filledGrid', () => {
+  it('maps only FILLED cells to true, empty and marked to false', () => {
+    let p = fill(makeProgress(2, 2), 0, 0)
+    p = mark(p, 0, 1)
+    expect(filledGrid(p)).toEqual([
+      [true, false],
+      [false, false],
+    ])
+  })
+
+  it('returns an all-false grid for a fresh puzzle', () => {
+    expect(filledGrid(makeProgress(3, 2))).toEqual([
+      [false, false, false],
+      [false, false, false],
+    ])
+  })
+})
+
+describe('complete', () => {
+  it('marks an in-progress puzzle as COMPLETED with a completion time', () => {
+    const p = fill(makeProgress(2, 2), 0, 0)
+    const c = complete(p)
+    expect(c.status).toBe(ProgressStatus.COMPLETED)
+    expect(typeof c.completedAt).toBe('number')
+    // player's cells are untouched
+    expect(c.cells).toEqual(p.cells)
+    // original remains in_progress and unedited
+    expect(p.status).toBe(ProgressStatus.IN_PROGRESS)
+  })
+
+  it('is a no-op on an already completed puzzle', () => {
+    const p = complete(fill(makeProgress(2, 2), 0, 0))
+    const again = complete(p)
+    expect(again.status).toBe(ProgressStatus.COMPLETED)
+    expect(again.completedAt).toBe(p.completedAt)
   })
 })
 

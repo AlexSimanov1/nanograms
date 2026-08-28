@@ -2,6 +2,57 @@ package domain
 
 import "testing"
 
+func TestPuzzleCheckSolution(t *testing.T) {
+	correct := [][]bool{
+		{true, true, true, true, true},
+		{true, false, true, false, true},
+		{true, false, false, false, false},
+		{true, true, true, false, false},
+		{true, true, false, false, false},
+	}
+
+	tests := []struct {
+		name   string
+		filled [][]bool
+		want   bool
+	}{
+		{"exact match is correct", correct, true},
+		{"one cell wrong is incorrect", [][]bool{
+			{true, true, true, true, true},
+			{true, false, true, false, true},
+			{true, false, false, false, false},
+			{true, true, true, false, false},
+			{true, true, false, false, true},
+		}, false},
+		{"empty grid is incorrect (solution has filled cells)", [][]bool{
+			{false, false, false, false, false},
+			{false, false, false, false, false},
+			{false, false, false, false, false},
+			{false, false, false, false, false},
+			{false, false, false, false, false},
+		}, false},
+		{"too few rows is not correct", correct[:4], false},
+		{"too many rows is not correct", append(append([][]bool{}, correct...), make([]bool, 5)), false},
+		{"row of wrong width is not correct", [][]bool{
+			{true, true, true, true, true},
+			{true, false, true, false, true},
+			{true, false, false, false, false},
+			{true, true, true, false, false},
+			{true, true, false, false},
+		}, false},
+		{"nil grid is not correct", nil, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := validPuzzle()
+			if got := p.CheckSolution(tt.filled); got != tt.want {
+				t.Fatalf("CheckSolution() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPuzzleValidate(t *testing.T) {
 	tests := []struct {
 		name    string

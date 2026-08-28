@@ -105,3 +105,24 @@ export function applyAction(progress, action, row, col) {
       throw new Error(`unknown action: ${action}`)
   }
 }
+
+// Build the height×width grid of filled/not-filled booleans that is sent to
+// the backend for verification. Only FILLED cells are true; marked and empty
+// cells are false, because the solution only describes the filled set.
+export function filledGrid(progress) {
+  return progress.cells.map((row) => row.map((state) => state === CellState.FILLED))
+}
+
+// Mark a puzzle as solved: lock edits and record the completion time. The
+// player's cells are left untouched (an incorrect check never discards them).
+// Immutable, like the other transitions.
+export function complete(progress) {
+  if (progress.status === ProgressStatus.COMPLETED) {
+    return progress
+  }
+  return {
+    ...progress,
+    status: ProgressStatus.COMPLETED,
+    completedAt: Date.now(),
+  }
+}

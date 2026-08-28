@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/AlexSimanov1/nanograms/internal/application"
@@ -125,6 +126,85 @@ func TestGetPuzzle(t *testing.T) {
 		t.Errorf("detail response leaked solution: %v", body)
 	}
 }
+
+func TestCheckPuzzle(t *testing.T) {
+	// testPuzzle is 2×2 with Solution [[true,true],[false,true]].
+	correct := `{"cells":[[true,true],[false,true]]}`
+	incorrect := `{"cells":[[true,true],[false,false]]}`
+
+	tests := []struct {
+		name      string
+		url       string
+		body      string
+		wantCode  int
+		want      *bool
+		wantError string
+	}{
+		{"correct solution returns correct:true", "/api/v1/puzzles/001/check", correct, 200, boolPtr(true), ""},
+		{"wrong solution returns correct:false", "/api/v1/puzzles/001/check", incorrect, 200, boolPtr(false), ""},
+		{"unknown puzzle is 404", "/api/v1/puzzles/999/check", correct, 404, nil, "puzzle not found"},
+		{"malformed JSON is 400", "/api/v1/puzzles/001/check", `{not json`, 400, nil, "invalid request body"},
+		{"empty body is 400", "/api/v1/puzzles/001/check", ``, 400, nil, "invalid request body"},
+		{"wrong shape is 400", "/api/v1/puzzles/001/check", `{"cells":[[true]]}`, 400, nil, "cells must be height×width"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := newTestHandler(newStubRepo(testPuzzle("001", "Cross")))
+
+			req := httptest.NewRequest(http.MethodPost, tt.url, strings.NewReader(tt.body))
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("status = %d, want %d (body %s)", rec.Code, tt.wantCode, rec.Body.String())
+			}
+
+			body := rec.Body.Bytes()
+			// The check response must never leak the solution.
+			if strings.Contains(rec.Body.String(), "solution") {
+				t.Errorf("check response leaked solution: %s", rec.Body.String())
+			}
+
+			if tt.want != nil {
+				var resp struct {
+					Correct bool `json:"correct"`
+				}
+				if err := json.Unmarshal(body, &resp); err != nil {
+					t.Fatalf("decode response: %v", err)
+				}
+				if resp.Correct != *tt.want {
+					t.Errorf("correct = %v, want %v", resp.Correct, *tt.want)
+				}
+			}
+			if tt.wantError != "" {
+				var errBody struct {
+					Error string `json:"error"`
+				}
+				if err := json.Unmarshal(body, &errBody); err != nil {
+					t.Fatalf("decode error response: %v", err)
+				}
+				if !strings.Contains(errBody.Error, tt.wantError) {
+					t.Errorf("error = %q, want it to contain %q", errBody.Error, tt.wantError)
+				}
+			}
+		})
+	}
+}
+
+func TestCheckPuzzleServerError(t *testing.T) {
+	handler := newTestHandler(&stubRepo{getErr: errors.New("boom")})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/puzzles/001/check", strings.NewReader(`{"cells":[[true,true],[false,true]]}`))
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+func boolPtr(b bool) *bool { return &b }
 
 func TestGetPuzzleNotFound(t *testing.T) {
 	handler := newTestHandler(newStubRepo())

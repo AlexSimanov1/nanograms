@@ -57,3 +57,28 @@ func (p Puzzle) Validate() error {
 	}
 	return nil
 }
+
+// CheckSolution reports whether the player's filled-cells grid (height×width
+// of booleans, true = filled) matches the puzzle's solution exactly.
+//
+// Marked cells are a player annotation, not part of the answer, so only the
+// filled set is compared. A grid whose shape does not match the puzzle is
+// never correct. The solution itself is never returned, only this verdict.
+func (p Puzzle) CheckSolution(filled [][]bool) bool {
+	if len(filled) != p.Height {
+		return false
+	}
+	for row := range filled {
+		if len(filled[row]) != p.Width {
+			return false
+		}
+	}
+	for row := range filled {
+		for col := range filled[row] {
+			if filled[row][col] != p.Solution[row][col] {
+				return false
+			}
+		}
+	}
+	return true
+}
