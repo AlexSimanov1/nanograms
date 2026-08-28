@@ -58,6 +58,29 @@ body {
   margin-bottom: 16px;
 }
 
+/* Toolbar: Fill / Mark / Clear mode selector */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tool-button-active,
+.tool-button-active:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Visible focus states for keyboard navigation */
+
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 /* Catalog list */
 
 .puzzle-list {

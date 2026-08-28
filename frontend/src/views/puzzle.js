@@ -1,10 +1,17 @@
 import { fetchPuzzle } from '../api.js'
 import { navigate } from '../router.js'
-import { CellState, createEmptyProgress } from '../game.js'
+import { Action, applyAction, CellState, createEmptyProgress } from '../game.js'
 
-// Puzzle page (MVP0 / 9.x + MVP1 / 10.1). Renders the grid with row/column
-// hints loaded from the API and reflects the client-side game state (empty /
-// filled / marked). Cells are not interactive yet — input arrives in 10.2+.
+// Puzzle page (MVP0 / 9.x + MVP1 / 10.x + 11). Renders the grid with row and
+// column hints, keeps client-side game state, and handles input: a Fill /
+// Mark / Clear mode selector, mouse clicks and keyboard navigation. The board
+// is fully usable without right-click or hover (mobile rule, AR/Нанограммы).
+
+const MODES = [
+  { action: Action.FILL, label: 'Закрасить', key: '1' },
+  { action: Action.MARK, label: 'Крестик', key: '2' },
+  { action: Action.CLEAR, label: 'Очистить', key: '3' },
+]
 
 function backView() {
   const back = document.createElement('button')
@@ -80,8 +87,44 @@ function rowHintsView(rowHints, height) {
   return el
 }
 
-// The playable grid of width × height cells, reflecting the current state.
-function gridView(progress) {
+// Reflect a cell's state in its DOM element (class + data + accessible name).
+function renderCell(cellEl, state) {
+  cellEl.dataset.state = state
+  cellEl.classList.remove('cell--filled', 'cell--marked')
+  if (state !== CellState.EMPTY) {
+    cellEl.classList.add(`cell--${state}`)
+  }
+  cellEl.setAttribute('aria-label', cellName(cellEl))
+}
+
+const STATE_LABEL = {
+  [CellState.EMPTY]: 'пусто',
+  [CellState.FILLED]: 'закрашено',
+  [CellState.MARKED]: 'крестик',
+}
+
+function cellName(cellEl) {
+  const row = Number(cellEl.dataset.row) + 1
+  const col = Number(cellEl.dataset.col) + 1
+  return `Ряд ${row}, столбец ${col}: ${STATE_LABEL[cellEl.dataset.state] ?? 'пусто'}`
+}
+
+// Move focus to the cell at (row, col) and make it the only tabbable cell
+// (roving tabindex, so keyboard navigation doesn't tab through 400 stops).
+function focusCell(grid, row, col, height, width) {
+  if (row < 0 || row >= height || col < 0 || col >= width) return
+  const target = grid.querySelector(`[data-row="${row}"][data-col="${col}"]`)
+  if (!target) return
+  for (const c of grid.querySelectorAll('.cell')) {
+    c.tabIndex = -1
+  }
+  target.tabIndex = 0
+  target.focus()
+}
+
+// The playable grid of width × height cells. Emits input via `onCell`,
+// which receives (row, col) and returns the resulting CellState for the cell.
+function gridView(progress, onCell) {
   const { width, height, cells } = progress
   const grid = document.createElement('div')
   grid.className = 'board-grid'
@@ -89,23 +132,49 @@ function gridView(progress) {
   grid.setAttribute('aria-label', 'Игровое поле')
   grid.style.gridTemplateColumns = `repeat(${width}, 1fr)`
   grid.style.gridTemplateRows = `repeat(${height}, 1fr)`
+
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
       const cell = document.createElement('div')
       cell.className = 'cell'
+      cell.setAttribute('role', 'gridcell')
       cell.dataset.row = r
       cell.dataset.col = c
-      cell.dataset.state = cells[r][c]
-      if (cells[r][c] !== CellState.EMPTY) {
-        cell.classList.add(`cell--${cells[r][c]}`)
-      }
+      cell.tabIndex = r === 0 && c === 0 ? 0 : -1
+      renderCell(cell, cells[r][c])
+      cell.addEventListener('click', () => onCell(r, c))
       grid.append(cell)
     }
   }
+
+  // Mouse-independent keyboard navigation: arrows move focus, Space/Enter act.
+  grid.addEventListener('keydown', (e) => {
+    const cell = e.target.closest('.cell')
+    if (!cell) return
+    const row = Number(cell.dataset.row)
+    const col = Number(cell.dataset.col)
+    const MOVES = {
+      ArrowUp: [-1, 0],
+      ArrowDown: [1, 0],
+      ArrowLeft: [0, -1],
+      ArrowRight: [0, 1],
+    }
+    const move = MOVES[e.key]
+    if (move) {
+      e.preventDefault()
+      focusCell(grid, row + move[0], col + move[1], height, width)
+      return
+    }
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      onCell(row, col)
+    }
+  })
+
   return grid
 }
 
-function boardView(puzzle, progress) {
+function boardView(puzzle, progress, onCell) {
   const board = document.createElement('div')
   board.className = 'puzzle-board'
 
@@ -116,9 +185,35 @@ function boardView(puzzle, progress) {
     corner,
     columnHintsView(puzzle.columnHints, puzzle.width),
     rowHintsView(puzzle.rowHints, puzzle.height),
-    gridView(progress),
+    gridView(progress, onCell),
   )
   return board
+}
+
+// The Fill / Mark / Clear tool selector. Always visible so the current mode
+// is obvious (20.2). Keyboard shortcuts 1/2/3 switch the mode.
+function toolbarView(currentAction, onMode) {
+  const bar = document.createElement('div')
+  bar.className = 'toolbar'
+  bar.setAttribute('role', 'group')
+  bar.setAttribute('aria-label', 'Действие')
+
+  for (const { action, label, key } of MODES) {
+    const btn = document.createElement('button')
+    btn.className = 'button tool-button'
+    if (action === currentAction) {
+      btn.classList.add('tool-button-active')
+      btn.setAttribute('aria-pressed', 'true')
+    } else {
+      btn.setAttribute('aria-pressed', 'false')
+    }
+    btn.type = 'button'
+    btn.textContent = `${label} (${key})`
+    btn.dataset.action = action
+    btn.addEventListener('click', () => onMode(action))
+    bar.append(btn)
+  }
+  return bar
 }
 
 function metaView(puzzle) {
@@ -126,6 +221,14 @@ function metaView(puzzle) {
   meta.className = 'puzzle-meta'
   meta.textContent = `${puzzle.width}×${puzzle.height} · ${puzzle.difficulty}`
   return meta
+}
+
+function syncToolbar(bar, action) {
+  for (const btn of bar.querySelectorAll('.tool-button')) {
+    const active = btn.dataset.action === action
+    btn.classList.toggle('tool-button-active', active)
+    btn.setAttribute('aria-pressed', String(active))
+  }
 }
 
 export function renderPuzzle(container, id) {
@@ -148,9 +251,26 @@ export function renderPuzzle(container, id) {
     .then((puzzle) => {
       const progress = createEmptyProgress(puzzle)
       progress.puzzleId = puzzle.id
+
+      let current = progress
+      let action = Action.FILL
+
+      const toolbar = toolbarView(action, (a) => {
+        action = a
+        syncToolbar(toolbar, action)
+      })
+
+      const onCell = (row, col) => {
+        current = applyAction(current, action, row, col)
+        const cellEl = content.querySelector(
+          `[data-row="${row}"][data-col="${col}"]`,
+        )
+        renderCell(cellEl, current.cells[row][col])
+      }
+
       heading.textContent = puzzle.title
       heading.after(metaView(puzzle))
-      content.replaceChildren(boardView(puzzle, progress))
+      content.replaceChildren(toolbar, boardView(puzzle, current, onCell))
     })
     .catch((err) => {
       const message = err && err.message ? err.message : 'неизвестная ошибка'

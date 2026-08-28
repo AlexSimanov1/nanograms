@@ -1072,6 +1072,57 @@ Next:
 
 Completed:
 
+- MVP1 / 11 — Desktop input (клик, выбор действия, клавиатура, focus states).
+
+Tests:
+
+- `npm test` (Vitest) — PASS: 15 тестов (добавлены `applyAction`).
+- `npm run build` — PASS (10 модулей).
+- Docker frontend пересобран, на `:8080` отдаётся актуальный bundle, в нём присутствуют метки действий и навигация.
+
+Notes:
+
+- В `frontend/src/game.js` добавлен перечисляемый концепт действия `Action` (fill/mark/clear) и функция `applyAction(progress, action, r, c)` — отделяет выбор игрока от результирующего CellState, тестируем.
+- `frontend/src/views/puzzle.js`: тулбар Закрасить/Крестик/Очистить (всегда виден, активный выделен, aria-pressed; горячие клавиши 1/2/3), клик по клетке применяет действие, keyboard-навигация стрелками с roving tabindex (одна таблируемая клетка, Space/Enter — действие). Такого рода input не требует right-click или hover (mobile-правило).
+- Клетки обновляются точечно (`renderCell`) — класс, data-state и доступное имя («Ряд N, столбец M: …»), без перерисовки всей доски.
+- Focus states: видимый `outline` через `:focus-visible`.
+- Клетки editing на `completed` защищены на уровне домена (game.js), UI-блокировка завершённого — с flow завершения (19).
+
+Next:
+
+- MVP1 / 12 — Mobile input (touch, drag, portrait/landscape, размеры клеток 20×20).
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
+- MVP1 / 10.2 — изменение клетки (fill / mark / clear) + тесты переходов состояний.
+
+Tests:
+
+- `npm test` (Vitest) — PASS: 11 тестов (`frontend/src/game.test.js`).
+- `npm run build` — PASS (10 модулей; тестовый код в production bundle не попадает).
+- Docker / backend — не затронуты.
+
+Notes:
+
+- В `frontend/src/game.js` добавлены переходы: `fill` / `mark` / `clear` (иммутабельные — возвращают новый progress, не мутируют исходный). Общая внутренняя `setCell`: валидирует границы (throw при выходе за размеры), запрещает правку завершённого кроссворда, переводит `NOT_STARTED -> IN_PROGRESS` при первом изменении.
+- UVIT подход согласован с пользователем и добавлен: dev-зависимость в `frontend/package.json`([vitest ^4.1.11]) + скрипт `npm test`. Тестовый модуль фактически подтверждается отсутствием Vitest-импортов в production-бандле.
+- Новый `frontend/src/game.test.js` покрывает: создание пустого состояния, валидацию размеров, переходы fill/mark/clear, иммутабельность, смену статуса, out-of-bounds, отказ на completed.
+- Клетки всё ещё не интерактивны в UI — ввод (клик/режим Закрасить/Крестик/Очистить) это задачи 11.x/frontend input. Логика переходов готова и покрыта тестами.
+
+Next:
+
+- MVP1 / 11 — Desktop input (клик изменяет клетку, режим выбора действия, keyboard/focus).
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
 - MVP0 / 9.x — First vertical slice (отображение доски) — подтверждено визуально через Docker.
 - MVP1 / 10.1 — состояние игрового поля.
 
