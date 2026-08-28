@@ -143,6 +143,24 @@ body {
   color: #2563eb;
 }
 
+/* Action badge (Начать / Продолжить / Решён): a small pill at the foot of
+   the card, acting as the "go open this puzzle" cue (18). */
+.puzzle-card-action {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 12px;
+  border: 1px solid #a1a1aa;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.puzzle-card:hover .puzzle-card-action {
+  border-color: #71717a;
+  background: #f4f4f5;
+}
+
 /* Puzzle page */
 
 .puzzle-title {

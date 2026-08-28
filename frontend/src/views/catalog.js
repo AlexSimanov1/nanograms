@@ -62,14 +62,19 @@ function puzzleCard(puzzle, status) {
   meta.className = 'puzzle-card-meta'
   meta.textContent = `${puzzle.width}×${puzzle.height} · ${puzzle.difficulty}`
 
-  // Status reflects saved progress (15): "Решён" also works as the action link.
+  // Structure per ROADMAP 18: title, size, difficulty, status — with the
+  // action (Начать / Продолжить / Решён) shown separately as a badge.
   const { statusLabel, actionLabel } = statusMeta(status)
   const statusLine = document.createElement('p')
   statusLine.className = 'puzzle-card-status'
   statusLine.dataset.status = status
-  statusLine.textContent = `${statusLabel} · ${actionLabel}`
+  statusLine.textContent = statusLabel
 
-  card.append(title, meta, statusLine)
+  const actionBadge = document.createElement('span')
+  actionBadge.className = 'puzzle-card-action'
+  actionBadge.textContent = actionLabel
+
+  card.append(title, meta, statusLine, actionBadge)
   return card
 }
 
