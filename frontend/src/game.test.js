@@ -6,8 +6,10 @@ import {
   applyAction,
   complete,
   createEmptyProgress,
+  elapsedMs,
   filledGrid,
   fill,
+  formatDuration,
   mark,
   clear,
 } from './game.js'
@@ -164,5 +166,60 @@ describe('out-of-bounds and completed guard', () => {
   it('refuses to edit a completed puzzle', () => {
     const p = { ...makeProgress(), status: ProgressStatus.COMPLETED }
     expect(() => fill(p, 0, 0)).toThrow(/completed/)
+  })
+})
+
+describe('timer model (16)', () => {
+  it('a fresh puzzle has no clock running', () => {
+    const p = makeProgress()
+    expect(p.startedAt).toBeNull()
+    expect(p.elapsedTime).toBe(0)
+    expect(elapsedMs(p, 5000)).toBe(0)
+  })
+
+  it('the first move starts the clock and later moves do not reset it', () => {
+    const first = fill(makeProgress(), 0, 0)
+    expect(first.startedAt).not.toBeNull()
+    expect(typeof first.startedAt).toBe('number')
+    const later = fill(first, 1, 1)
+    expect(later.startedAt).toBe(first.startedAt)
+  })
+
+  it('elapsedMs reports the live time since the first move', () => {
+    const p = fill(makeProgress(), 0, 0)
+    expect(elapsedMs(p, p.startedAt + 65_000)).toBe(65_000)
+  })
+
+  it('complete fixes the elapsed time and stops the clock', () => {
+    const p = fill(makeProgress(), 0, 0)
+    const done = complete(p)
+    const now = done.completedAt
+    expect(done.elapsedTime).toBe(now - p.startedAt)
+    // fixed: no longer grows with `now`
+    expect(elapsedMs(done, now + 9_999_999)).toBe(done.elapsedTime)
+  })
+
+  it('complete on a fresh (never started) puzzle yields zero elapsed', () => {
+    const done = complete(makeProgress())
+    expect(done.elapsedTime).toBe(0)
+  })
+})
+
+describe('formatDuration (16)', () => {
+  it('formats seconds and minutes as MM:SS', () => {
+    expect(formatDuration(0)).toBe('00:00')
+    expect(formatDuration(59_000)).toBe('00:59')
+    expect(formatDuration(60_000)).toBe('01:00')
+    expect(formatDuration(65_000)).toBe('01:05')
+    expect(formatDuration(10 * 60 * 1000 + 9_000)).toBe('10:09')
+  })
+
+  it('includes hours once a hour is passed', () => {
+    expect(formatDuration(3600_000)).toBe('1:00:00')
+    expect(formatDuration(2 * 3600_000 + 61_000)).toBe('2:01:01')
+  })
+
+  it('clamps negative input to zero', () => {
+    expect(formatDuration(-5)).toBe('00:00')
   })
 })

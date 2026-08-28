@@ -8,7 +8,9 @@ import {
   applyAction,
   complete,
   createEmptyProgress,
+  elapsedMs,
   filledGrid,
+  formatDuration,
 } from '../game.js'
 
 // Puzzle page (MVP0 / 9.x + MVP1 / 10.x + 11 + 14). Renders the grid with row
@@ -342,6 +344,7 @@ export function renderPuzzle(container, id) {
         if (current.status === ProgressStatus.COMPLETED) return
         current = applyAction(current, action, row, col)
         storage.saveProgress(current)
+        renderTimer()
         const cellEl = content.querySelector(
           `[data-row="${row}"][data-col="${col}"]`,
         )
@@ -366,6 +369,7 @@ export function renderPuzzle(container, id) {
           if (correct) {
             current = complete(current)
             storage.saveProgress(current)
+            renderTimer() // freezes the clock at the final time immediately
             notice.textContent = 'Кроссворд решён!'
             notice.className = 'puzzle-notice notice-success'
           } else {
@@ -380,9 +384,32 @@ export function renderPuzzle(container, id) {
         }
       })
 
+      // Timer (16): live seconds from startedAt while in progress, frozen at
+      // elapsedTime once completed. The interval stops when the puzzle is
+      // solved or the node leaves the DOM (navigation away), so it never
+      // ticks on another page.
+      const timer = document.createElement('span')
+      timer.className = 'puzzle-timer'
+      timer.setAttribute('aria-label', 'Время решения')
+      const renderTimer = () => {
+        timer.textContent = formatDuration(elapsedMs(current))
+      }
+      renderTimer()
+      const timerInterval = setInterval(() => {
+        if (current.status === ProgressStatus.COMPLETED) {
+          clearInterval(timerInterval)
+          return
+        }
+        if (!timer.isConnected) {
+          clearInterval(timerInterval)
+          return
+        }
+        renderTimer()
+      }, 1000)
+
       const actionBar = document.createElement('div')
       actionBar.className = 'actionbar'
-      actionBar.append(checkBtn, notice)
+      actionBar.append(timer, checkBtn, notice)
 
       heading.textContent = puzzle.title
       heading.after(metaView(puzzle))

@@ -646,23 +646,23 @@ current state == solution
 
 Хранить: `startedAt`, `elapsedTime`, `completedAt`.
 
-- Таймер запускается при начале решения.
-- Таймер отображается в UI.
-- Таймер не зависит от количества render cycles.
-- Таймер корректно восстанавливается после reload.
-- Таймер останавливается после completion.
-- Итоговое время сохраняется.
+- Таймер запускается при начале решения. — [x]
+- Таймер отображается в UI. — [x]
+- Таймер не зависит от количества render cycles. — [x]
+- Таймер корректно восстанавливается после reload. — [x]
+- Таймер останавливается после completion. — [x]
+- Итоговое время сохраняется. — [x]
 
 ### 16.2. Timer tests
 
 Проверить:
 
-- fresh puzzle;
-- in-progress puzzle;
-- reload;
-- completed puzzle;
-- browser tab закрыта/открыта заново;
-- elapsed time не сбрасывается.
+- fresh puzzle; — [x]
+- in-progress puzzle; — [x]
+- reload; — [x]
+- completed puzzle; — [x]
+- browser tab закрыта/открыта заново; — [x]
+- elapsed time не сбрасывается. — [x]
 
 ---
 
@@ -1067,6 +1067,31 @@ Next:
 **Progress**
 
 <!-- AGENTS: append progress entries below this line -->
+
+## 2026-08-29 — Agent
+
+Completed:
+
+- MVP1 / 16 — Timer (модель 16.1 + тесты 16.2).
+
+Tests:
+
+- `npm test` (Vitest) — PASS: 45 тестов (добавлены блоки `timer model (16)` и `formatDuration (16)` в game.test.js; persistence: round-trip полей таймера + дефолты).
+- `npm run build` — PASS (11 модулей; `dist/assets/index-CRdq85yO.js`).
+- `docker compose build frontend && up` — PASS: `:8080` раздаёт свежий bundle, код таймера присутствует.
+
+Notes:
+
+- **Модель (`game.js`)**. Прогресс теперь несёт `startedAt` (устанавливается при первом ходе, `Date.now()`, никогда не сбрасывается последующими ходами) и `elapsedTime` (по умолчанию 0, фиксируется при `complete()` = `now - startedAt`). `complete()` для никогда не начатого кроссворда даёт 0. Чистые функции: `elapsedMs(progress, now=Date.now())` — для `in_progress` живое `now - startedAt`, для `completed` замороженный `elapsedTime`; `formatDuration(ms)` → `MM:SS` / `H:MM:SS` (clamp отрицательных). Время вычисляется от метки времени, а не копится в render-циклах — не зависит от числа рендеров и переживает reload.
+- **Persistence (`persistence.js`)**. Сохраняются/восстанавливаются `startedAt` и `elapsedTime`; старые/частично битые записи без этих полей нормализуются (`startedAt: null`, `elapsedTime: 0`) — формат обратно совместим с задачами 14/15.
+- **UI (`views/puzzle.js`)**. Таймер `.puzzle-timer` в actionbar, обновление раз в секунду (`setInterval`); интервал сам завершается, когда кроссворд решён (после `complete()` финальное время показывается сразу через `renderTimer()`) или когда узел покинул DOM (навигация в каталог — `timer.isConnected`), поэтому на другой странице не тикает. `aria-label="Время решения"`, `tabular-nums` против дрожания цифр.
+- **Сценарий 16.2**: fresh → «00:00», первый ход → старт, reload → время продолжается от сохранённого `startedAt` (не сбрасывается), completed → зафиксировано в `elapsedTime` и сохраняется.
+
+Next:
+
+- MVP1 / 17 — Reset (Сбросить: очистка клеток, подтверждение при необходимости, обновление progress/timer/status).
+
+---
 
 ## 2026-08-29 — Agent
 

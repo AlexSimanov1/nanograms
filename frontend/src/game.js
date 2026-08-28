@@ -42,6 +42,10 @@ export function createEmptyProgress({ width, height }) {
     height,
     cells,
     status: ProgressStatus.NOT_STARTED,
+    // Timer (16.1): startedAt is set on the first move; elapsedTime is fixed
+    // on completion. Both are persisted so the clock survives reloads.
+    startedAt: null,
+    elapsedTime: 0,
   }
 }
 
@@ -69,11 +73,14 @@ function setCell(progress, row, col, state) {
   }
   const cells = progress.cells.map((r) => r.slice())
   cells[row][col] = state
-  const status =
-    progress.status === ProgressStatus.NOT_STARTED
-      ? ProgressStatus.IN_PROGRESS
-      : progress.status
-  return { ...progress, cells, status }
+  const started = progress.status === ProgressStatus.NOT_STARTED
+  return {
+    ...progress,
+    cells,
+    status: started ? ProgressStatus.IN_PROGRESS : progress.status,
+    // The timer starts with the first move and is never reset by later edits.
+    startedAt: started ? Date.now() : progress.startedAt,
+  }
 }
 
 // Fill a cell (Zакрасить).
@@ -113,16 +120,44 @@ export function filledGrid(progress) {
   return progress.cells.map((row) => row.map((state) => state === CellState.FILLED))
 }
 
-// Mark a puzzle as solved: lock edits and record the completion time. The
-// player's cells are left untouched (an incorrect check never discards them).
-// Immutable, like the other transitions.
+// Mark a puzzle as solved: lock edits, record the completion time and fix the
+// elapsed time so the clock stops ticking. The player's cells are left
+// untouched (an incorrect check never discards them). Immutable, like the
+// other transitions.
 export function complete(progress) {
   if (progress.status === ProgressStatus.COMPLETED) {
     return progress
   }
+  const now = Date.now()
+  const elapsedTime =
+    Number.isFinite(progress.startedAt) ? now - progress.startedAt : 0
   return {
     ...progress,
     status: ProgressStatus.COMPLETED,
-    completedAt: Date.now(),
+    completedAt: now,
+    elapsedTime,
   }
+}
+
+// Seconds shown for a completed puzzle (fixed), or the live elapsed time since
+// the first move for one still in progress. `now` is injectable for tests.
+export function elapsedMs(progress, now = Date.now()) {
+  if (progress.status === ProgressStatus.COMPLETED) {
+    return progress.elapsedTime ?? 0
+  }
+  if (!Number.isFinite(progress.startedAt)) {
+    return 0
+  }
+  return now - progress.startedAt
+}
+
+// Render milliseconds as "MM:SS", or "H:MM:SS" once an hour is passed.
+export function formatDuration(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  const mm = String(m).padStart(2, '0')
+  const ss = String(s).padStart(2, '0')
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
 }

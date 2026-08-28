@@ -157,6 +157,44 @@ describe('persistence', () => {
     ])
   })
 
+  it('persists and restores the timer fields (startedAt/elapsedTime)', () => {
+    const storage = fakeStorage()
+    const s = createProgressStorage(storage)
+    const started = fill(makeProgress('001'), 0, 0)
+    s.saveProgress(started)
+
+    const restored = createProgressStorage(storage).loadProgress('001')
+    expect(restored.startedAt).toBe(started.startedAt)
+    expect(restored.elapsedTime).toBe(0)
+    expect(restored.elapsedTime).toBe(started.elapsedTime)
+
+    s.saveProgress(complete(started))
+    const done = createProgressStorage(storage).loadProgress('001')
+    expect(done.status).toBe(ProgressStatus.COMPLETED)
+    expect(done.elapsedTime).toBe(complete(started).elapsedTime)
+  })
+
+  it('coerces missing timer fields to safe defaults', () => {
+    const storage = fakeStorage()
+    storage.__setRaw(
+      JSON.stringify({
+        version: 1,
+        puzzles: {
+          '001': {
+            puzzleId: '001',
+            width: 2,
+            height: 2,
+            status: 'in_progress',
+            cells: [['filled', 'empty'], ['empty', 'empty']],
+          },
+        },
+      }),
+    )
+    const loaded = createProgressStorage(storage).loadProgress('001')
+    expect(loaded.startedAt).toBeNull()
+    expect(loaded.elapsedTime).toBe(0)
+  })
+
   it('listStatuses is empty when nothing is stored', () => {
     const storage = fakeStorage()
     expect(createProgressStorage(storage).listStatuses()).toEqual({})

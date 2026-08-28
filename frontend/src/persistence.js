@@ -42,6 +42,8 @@ function isRecordValid(record, puzzleId) {
 
 // A loaded record is normalized: an unknown cell state degenerates to empty
 // rather than throwing, so a slightly off record still restores, never breaks.
+// Timer fields are optional (older records may lack them) but coerced to sane
+// defaults so the clock always has something to render.
 function normalizeRecord(record) {
   return {
     puzzleId: record.puzzleId,
@@ -49,6 +51,8 @@ function normalizeRecord(record) {
     height: record.height,
     status: record.status,
     ...(typeof record.completedAt === 'number' ? { completedAt: record.completedAt } : {}),
+    startedAt: typeof record.startedAt === 'number' ? record.startedAt : null,
+    elapsedTime: typeof record.elapsedTime === 'number' ? record.elapsedTime : 0,
     cells: record.cells.map((row) =>
       row.map((state) => (KNOWN_CELL.has(state) ? state : CellState.EMPTY)),
     ),
@@ -114,6 +118,8 @@ export function createProgressStorage(storage = globalThis.localStorage) {
       ...(typeof progress.completedAt === 'number'
         ? { completedAt: progress.completedAt }
         : {}),
+      startedAt: typeof progress.startedAt === 'number' ? progress.startedAt : null,
+      elapsedTime: typeof progress.elapsedTime === 'number' ? progress.elapsedTime : 0,
       cells: progress.cells,
     }
     try {

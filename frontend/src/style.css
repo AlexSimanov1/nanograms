@@ -151,6 +151,14 @@ body {
   margin-top: 16px;
 }
 
+.puzzle-timer {
+  display: block;
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #18181b;
+}
+
 .puzzle-notice {
   min-height: 1.4em;
   margin-top: 8px;
