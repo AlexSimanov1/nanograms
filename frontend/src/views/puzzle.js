@@ -107,54 +107,6 @@ function errorView(message, onRetry) {
   return el
 }
 
-// One number span per hint value, e.g. three spans "2", "1", "3".
-function hintNumbers(numbers) {
-  const frag = document.createDocumentFragment()
-  for (const n of numbers) {
-    const s = document.createElement('span')
-    s.className = 'board-hint-num'
-    s.textContent = n
-    frag.append(s)
-  }
-  return frag
-}
-
-// Top band with one cell per column, hints bottom-aligned (closest to grid).
-function columnHintsView(columnHints, width) {
-  const el = document.createElement('div')
-  el.className = 'board-colhints'
-  el.style.gridTemplateColumns = `repeat(${width}, 1fr)`
-  columnHints.forEach((col, c) => {
-    const cell = document.createElement('div')
-    cell.className = 'board-hint board-hint-col'
-    // Extend the every-5th vertical grid marking up through the column hints
-    // band (ТЗ 2) so the thicker separator reads as one continuous line.
-    if (c > 0 && c % 5 === 0) cell.classList.add('cell--five-left')
-    cell.setAttribute('role', 'columnheader')
-    cell.append(hintNumbers(col))
-    el.append(cell)
-  })
-  return el
-}
-
-// Left band with one cell per row, hints right-aligned (closest to grid).
-function rowHintsView(rowHints, height) {
-  const el = document.createElement('div')
-  el.className = 'board-rowhints'
-  el.style.gridTemplateRows = `repeat(${height}, 1fr)`
-  rowHints.forEach((row, r) => {
-    const cell = document.createElement('div')
-    cell.className = 'board-hint board-hint-row'
-    // Extend the every-5th horizontal grid marking left through the row hints
-    // band (ТЗ 2) so the thicker separator reads as one continuous line.
-    if (r > 0 && r % 5 === 0) cell.classList.add('cell--five-top')
-    cell.setAttribute('role', 'rowheader')
-    cell.append(hintNumbers(row))
-    el.append(cell)
-  })
-  return el
-}
-
 // Reflect a cell's state in its DOM element (class + data + accessible name).
 function renderCell(cellEl, state) {
   cellEl.dataset.state = state
@@ -190,20 +142,16 @@ function focusCell(grid, row, col, height, width) {
   target.focus()
 }
 
-// The playable grid of width × height cells. Emits input via `onCell`,
-// which receives (row, col) and returns the resulting CellState for the cell.
-// Input works with mouse, touch and pen through Pointer Events: a tap paints
-// one cell, a drag paints the stroke the pointer crosses. No right-click or
-// hover is ever required (mobile rule). `touch-action: none` on cells (CSS)
-// keeps a touch-drag from scrolling or zooming the page instead of painting.
-function gridView(progress, onCell) {
-  const { width, height, cells } = progress
-  const grid = document.createElement('div')
-  grid.className = 'board-grid'
-  grid.setAttribute('role', 'grid')
-  grid.setAttribute('aria-label', 'Игровое поле')
-  grid.style.gridTemplateColumns = `repeat(${width}, 1fr)`
-  grid.style.gridTemplateRows = `repeat(${height}, 1fr)`
+// Wire mouse/touch/keyboard input for the playable cells (`.cell`) inside the
+// unified board. Emits input via `onCell`, which receives (row, col) and
+// returns the resulting CellState for the cell. Input works with mouse, touch
+// and pen through Pointer Events: a tap paints one cell, a drag paints the
+// stroke the pointer crosses. No right-click or hover is ever required (mobile
+// rule). `touch-action: none` on cells (CSS) keeps a touch-drag from scrolling
+// or zooming the page instead of painting. Hint header cells are skipped —
+// input targets only `.cell`.
+function wireBoardInput(board, progress, onCell) {
+  const { width, height } = progress
 
   // A pointer is dragging across the board only while a button is held.
   let dragging = false
@@ -217,32 +165,13 @@ function gridView(progress, onCell) {
     onCell(Number(cellEl.dataset.row), Number(cellEl.dataset.col))
   }
 
-  for (let r = 0; r < height; r++) {
-    for (let c = 0; c < width; c++) {
-      const cell = document.createElement('div')
-      cell.className = 'cell'
-      cell.setAttribute('role', 'gridcell')
-      cell.dataset.row = r
-      cell.dataset.col = c
-      // Grid marking (ТЗ 2): thicker separators after every 5th row/column.
-      // Interior junctions only (c>0 / r>0) — the outer border already uses
-      // the same strong slate, so the outer edges need no extra thickening.
-      // Behaviour-neutral decoration; game state is untouched.
-      if (c > 0 && c % 5 === 0) cell.classList.add('cell--five-left')
-      if (r > 0 && r % 5 === 0) cell.classList.add('cell--five-top')
-      cell.tabIndex = r === 0 && c === 0 ? 0 : -1
-      renderCell(cell, cells[r][c])
-      grid.append(cell)
-    }
-  }
-
   // Start a stroke on a primary-button press over a cell.
-  grid.addEventListener('pointerdown', (e) => {
+  board.addEventListener('pointerdown', (e) => {
     const cell = e.target.closest('.cell')
     if (!cell || dragging || e.button !== 0) return
     dragging = true
     lastKey = null
-    grid.setPointerCapture(e.pointerId)
+    board.setPointerCapture(e.pointerId)
     e.preventDefault()
     // Make the tapped cell the visible "active" cell (20.1): give it focus so
     // the outline follows mouse/touch too, not only keyboard navigation.
@@ -254,9 +183,9 @@ function gridView(progress, onCell) {
 
   // While the button is held, find the cell under the pointer and paint it.
   // elementFromPoint is used instead of pointerenter (which does not bubble
-  // to the grid listener) and stays reliable under pointer capture and for
+  // to the board listener) and stays reliable under pointer capture and for
   // fast strokes that would otherwise skip cells.
-  grid.addEventListener('pointermove', (e) => {
+  board.addEventListener('pointermove', (e) => {
     if (!dragging) return
     const under = document.elementFromPoint(e.clientX, e.clientY)
     const cell = under && under.closest('.cell')
@@ -272,12 +201,12 @@ function gridView(progress, onCell) {
   const stopDragging = () => {
     dragging = false
   }
-  grid.addEventListener('pointerup', stopDragging)
-  grid.addEventListener('pointercancel', stopDragging)
-  grid.addEventListener('lostpointercapture', stopDragging)
+  board.addEventListener('pointerup', stopDragging)
+  board.addEventListener('pointercancel', stopDragging)
+  board.addEventListener('lostpointercapture', stopDragging)
 
   // Mouse-independent keyboard navigation: arrows move focus, Space/Enter act.
-  grid.addEventListener('keydown', (e) => {
+  board.addEventListener('keydown', (e) => {
     const cell = e.target.closest('.cell')
     if (!cell) return
     const row = Number(cell.dataset.row)
@@ -291,7 +220,7 @@ function gridView(progress, onCell) {
     const move = MOVES[e.key]
     if (move) {
       e.preventDefault()
-      focusCell(grid, row + move[0], col + move[1], height, width)
+      focusCell(board, row + move[0], col + move[1], height, width)
       return
     }
     if (e.key === ' ' || e.key === 'Enter') {
@@ -299,23 +228,90 @@ function gridView(progress, onCell) {
       onCell(row, col)
     }
   })
-
-  return grid
 }
 
+// The whole board — corner, column/row hints and the playable field — built as
+// ONE CSS grid (rMax + width columns × cMax + height rows, all 1fr). A single
+// shared grid means every track is computed once, so the hint lines always
+// align 1:1 with the field by construction (the earlier separate bands drifted).
+// Each hint number is its own square cell: an "11" is one cell, "1 1" is two,
+// so runs never read as a single long number.
 function boardView(puzzle, progress, onCell) {
+  const { width, height, columnHints, rowHints } = puzzle
+  const { cells } = progress
+
+  // Left block width / top block height = the longest hint run on that axis.
+  const rMax = Math.max(0, ...rowHints.map((r) => r.length))
+  const cMax = Math.max(0, ...columnHints.map((c) => c.length))
+
   const board = document.createElement('div')
   board.className = 'puzzle-board'
+  board.setAttribute('role', 'grid')
+  board.setAttribute('aria-label', 'Игровое поле')
+  board.style.gridTemplateColumns = `repeat(${rMax + width}, 1fr)`
+  board.style.gridTemplateRows = `repeat(${cMax + height}, 1fr)`
 
+  // Top-left empty block spanning the whole hint-number area.
   const corner = document.createElement('div')
   corner.className = 'board-corner'
+  corner.style.gridRow = `1 / span ${cMax}`
+  corner.style.gridColumn = `1 / span ${rMax}`
+  board.append(corner)
 
-  board.append(
-    corner,
-    columnHintsView(puzzle.columnHints, puzzle.width),
-    rowHintsView(puzzle.rowHints, puzzle.height),
-    gridView(progress, onCell),
-  )
+  // Column hints: one cell per number, bottom-aligned toward the field.
+  columnHints.forEach((nums, j) => {
+    nums.forEach((n, i) => {
+      const cell = document.createElement('div')
+      cell.className = 'board-hint board-hint-col'
+      cell.setAttribute('role', 'columnheader')
+      cell.textContent = n
+      cell.style.gridRow = cMax - nums.length + i + 1
+      cell.style.gridColumn = rMax + j + 1
+      if (j > 0 && j % 5 === 0) cell.classList.add('cell--five-left')
+      if (j % 2 === 1) cell.classList.add('board-hint--alt')
+      board.append(cell)
+    })
+  })
+
+  // Row hints: one cell per number, right-aligned toward the field.
+  rowHints.forEach((nums, i) => {
+    nums.forEach((n, k) => {
+      const cell = document.createElement('div')
+      cell.className = 'board-hint board-hint-row'
+      cell.setAttribute('role', 'rowheader')
+      cell.textContent = n
+      cell.style.gridRow = cMax + i + 1
+      cell.style.gridColumn = rMax - nums.length + k + 1
+      if (i > 0 && i % 5 === 0) cell.classList.add('cell--five-top')
+      if (i % 2 === 1) cell.classList.add('board-hint--alt')
+      board.append(cell)
+    })
+  })
+
+  // Playable field cells.
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const cell = document.createElement('div')
+      cell.className = 'cell'
+      cell.setAttribute('role', 'gridcell')
+      cell.dataset.row = r
+      cell.dataset.col = c
+      // Grid marking (ТЗ 2): thicker separators after every 5th row/column.
+      // Behaviour-neutral decoration; game state is untouched.
+      if (c > 0 && c % 5 === 0) cell.classList.add('cell--five-left')
+      if (r > 0 && r % 5 === 0) cell.classList.add('cell--five-top')
+      // Thick seam on the boundary between the hints and the field.
+      if (c === 0) cell.classList.add('cell--seam-left')
+      if (r === 0) cell.classList.add('cell--seam-top')
+      cell.tabIndex = r === 0 && c === 0 ? 0 : -1
+      cell.style.gridRow = cMax + r + 1
+      cell.style.gridColumn = rMax + c + 1
+      renderCell(cell, cells[r][c])
+      board.append(cell)
+    }
+  }
+
+  wireBoardInput(board, progress, onCell)
   return board
 }
 
@@ -413,7 +409,7 @@ export function renderPuzzle(container, id) {
 
       // Switch the active mode from the keyboard by 1/2/3 (20.2). Attached to
       // the page node so the listener dies on navigation (no leak); arrows and
-      // Space/Enter inside the grid are handled separately in gridView.
+      // Space/Enter inside the board are handled separately in wireBoardInput.
       wrap.addEventListener('keydown', (e) => {
         const mode = MODES.find((m) => m.key === e.key)
         if (!mode) return

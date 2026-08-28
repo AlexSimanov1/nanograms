@@ -244,106 +244,48 @@ body {
   background: #dcfce7;
 }
 
-/* Board layout: corner | column hints
-                     row hints | grid      */
+/* Board layout: ONE shared CSS grid holding the corner, the column/row hint
+   number cells and the playable field, all as square 1fr cells. Because the
+   whole board is a single grid, every track is computed once and the hint
+   lines align 1:1 with the field by construction — the earlier separate bands
+   drifted, so the geometry now cannot diverge. The column/row template is set
+   inline from JS: (rMax + width) × (cMax + height). */
 
 .puzzle-board {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  grid-template-rows: minmax(0, auto) 1fr;
+  gap: 1px;
+  background: #94a3b8;
+  /* Outer frame around the whole board so it reads as one finished piece
+     instead of ending abruptly on the last gutter. Matches the strong slate
+     used for the seams and every-5th marking. */
+  border: 1px solid #64748b;
   /* Fit any screen: cap at 720px on wide displays (roomier 20×20 cells on
      desktop), fill the viewport on narrow ones so a 20×20 board scales down
      instead of overflowing. */
   max-width: min(720px, 100%);
 }
 
+/* Top-left empty block that spans the whole hint-number area. */
 .board-corner {
   background: #e2e8f0;
-  border: 1px solid #64748b;
-  border-right: 0;
-  border-bottom: 0;
 }
 
-/* Column hints band (one cell per column, numbers bottom-aligned) */
-
-.board-colhints {
-  display: grid;
-  gap: 1px;
-  background: #94a3b8;
-  /* Mirror the grid's horizontal frame so the column tracks line up 1:1 with
-     the grid's (hint separators align exactly with the field lines). The 2px
-     left border matches the grid's thick left seam; the 1px right border
-     matches the grid's right frame; horizontal padding is dropped so the
-     total content width equals the grid's. */
-  border: 1px solid #64748b;
-  border-top: 0;
-  border-bottom: 0;
-  border-left-width: 2px;
-  padding: 1px 0 0 0;
-}
-
+/* Hints are square cells, one number each, centered. Each number is its own
+   cell: an "11" is one cell, "1 1" is two, so runs never merge visually. */
 .board-hint {
-  display: flex;
-  gap: 3px;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
   background: #f8fafc;
   color: #18181b;
-  padding: 3px;
-}
-
-.board-hint-col {
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.board-hint-row {
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.board-hint-num {
   font-size: 13px;
   line-height: 1;
 }
 
-/* Track a single row/column across a large board (20.1): tint every other
-   hint cell so adjacent rows/columns read as distinct bands. Each hint cell
-   is a grid item appended in row/column order, so nth-child is the parity. */
-.board-hint-row:nth-child(even),
-.board-hint-col:nth-child(even) {
+/* Tint every other hint row/column so adjacent rows/columns read as distinct
+   bands on a large board (20.1). */
+.board-hint--alt {
   background: #eef2f7;
-}
-
-/* Row hints band (one cell per row, numbers right-aligned) */
-
-.board-rowhints {
-  display: grid;
-  gap: 1px;
-  background: #94a3b8;
-  /* Mirror the grid's vertical frame so the row tracks line up 1:1 with the
-     grid's. The 2px top border matches the grid's thick top seam; the 1px
-     bottom border matches the grid's bottom frame; the old bottom padding is
-     replaced by that border, leaving equal content height to the grid's. */
-  border: 1px solid #64748b;
-  border-left: 0;
-  border-right: 0;
-  border-top-width: 2px;
-  padding: 0 0 0 1px;
-}
-
-/* Grid cells (static for now; interactivity arrives in MVP1) */
-
-.board-grid {
-  display: grid;
-  gap: 1px;
-  background: #94a3b8;
-  /* Thick seam on the hint-facing edges (boundary between the hints and the
-     field, ТЗ 2): the top and left borders are widened to 2px so the every-5th
-     marking reads as one continuous line across the hint↔field boundary. The
-     outer right/bottom frame stays a normal 1px line. */
-  border: 1px solid #64748b;
-  border-top: 2px solid #64748b;
-  border-left: 2px solid #64748b;
 }
 
 .cell {
@@ -373,18 +315,28 @@ body {
 
 /* Grid / hint marking (ТЗ 2): thicker, darker separators after every 5th
    row/column, so a large board reads in blocks of 5 (5/10/15/20). Drawn with
-   border-box borders inside the element, so track/band outer sizes are
-   unchanged — the 1fr layout stays aligned. These classes are shared: the
-   grid cells and the row/column hint cells both carry them, so the same
-   every-5th line runs continuously across the cell↔hint boundaries (the grid
-   cells, column-hint cells and row-hint cells line up on the same tracks).
-   Interior junctions only; the outer edge already has the same strong slate
-   via the .board-* borders. */
+   box-sizing:border-box borders inside the cell, so cell sizes are unchanged.
+   The classes are shared: field cells and the row/column hint cells both carry
+   them, and — because the board is one grid — they line up on the same tracks,
+   so the every-5th lines run continuously through the hint↔field boundary.
+   Interior junctions only (c>0 / r>0); the seam classes below draw the field's
+   top row and left column boundary. */
 .cell--five-left {
   border-left: 2px solid #64748b;
 }
 
 .cell--five-top {
+  border-top: 2px solid #64748b;
+}
+
+/* Thick seam on the boundary between the hints and the field: the top row and
+   the left column of the playable field get a 2px border so the hint↔field
+   edge reads as a clear divider, consistent with the every-5th marking. */
+.cell--seam-left {
+  border-left: 2px solid #64748b;
+}
+
+.cell--seam-top {
   border-top: 2px solid #64748b;
 }
 
@@ -410,11 +362,6 @@ body {
    width (a 20×20 board stays usable in portrait without zooming). */
 @media (max-width: 480px) {
   .board-hint {
-    padding: 2px;
-    gap: 2px;
-  }
-
-  .board-hint-num {
     font-size: 11px;
   }
 }
