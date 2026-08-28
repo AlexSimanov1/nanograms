@@ -775,22 +775,22 @@ Puzzle
 
 **Backend**
 
-- Domain tests.
-- Puzzle validation tests.
-- Repository tests.
-- Application service tests.
-- HTTP handler tests.
-- Error cases.
+- Domain tests. — [x]
+- Puzzle validation tests. — [x]
+- Repository tests. — [x]
+- Application service tests. — [x]
+- HTTP handler tests. — [x]
+- Error cases. — [x]
 
 **Frontend**
 
-- Cell state transitions.
-- Puzzle progress.
-- Persistence.
-- Timer.
-- Puzzle completion.
-- Reset.
-- Catalog status.
+- Cell state transitions. — [x]
+- Puzzle progress. — [x]
+- Persistence. — [x]
+- Timer. — [x]
+- Puzzle completion. — [x]
+- Reset. — [x]
+- Catalog status. — [x]
 
 **E2E / integration**
 
@@ -814,7 +814,7 @@ Complete puzzle
 Completion shown
 ```
 
-- Этот сценарий проходит целиком.
+- Этот сценарий проходит целиком. — [x]
 
 ---
 
@@ -1067,6 +1067,33 @@ Next:
 **Progress**
 
 <!-- AGENTS: append progress entries below this line -->
+
+## 2026-08-29 — Agent
+
+Completed:
+
+- MVP1 / 23 — Tests (ревизия покрытия по чек-листу; новых тестов не требовалось — всё уже покрыто).
+
+Tests:
+
+- `go vet ./...` — PASS.
+- `go test ./...` — PASS (application, domain, http, storage).
+- `npm test` (Vitest) — PASS: 53 теста, 4 файла.
+- `npm run build` — PASS; docker compose продолжает работать (контейнеры были запущены ранее).
+
+Notes:
+
+- **Ревизия чек-листа 23 показала полное покрытие уже существующими тестами** (добавлять нечего, только подтвердил и прогнал):
+  - Backend: domain (cellstate/clues/puzzle/puzzleprogress — CheckSolution, Validate, runs, consistency, states/transitions), puzzle validation (TestPuzzleValidate), repository (Get/GetMissing/GetInvalidJSON/List + не-CRUD повреждается одним битым файлом), application service (Get/GetNotFound/Check/CheckErrorsAreTyped/List), HTTP handler (List/Get/Check + 404/400/500 + no-leak solution/hints) и health (server_test).
+  - Frontend: cell state transitions (fill/mark/clear/applyAction), puzzle progress (createEmptyProgress/immutability), persistence (round-trip/reload/разделение по id/повреждённые данные/дефолты таймера/listStatuses/сбой записи), timer (startedAt/elapsedMs/complete), completion (complete + nextPuzzleId), reset (reset + persistence reset), catalog status (statusMeta + listStatuses).
+- **E2E / integration**: автоматический E2E-фреймворк (Playwright и т.п.) осознанно не заводился — противоречит правилам простоты pet-проекта; минимальный сценарий «Open → Select → Load → Change → Reload → Progress restored → Complete → Completion shown» проверяется вручную через docker compose и был подтверждён в задачах 19/completion и ранее. Здесь повторно прогнаны unit-уровни.
+- Итог: backend и frontend unit-наборы зелёные, регрессий нет.
+
+Next:
+
+- MVP1 / 24.x — уже сделано ранее (production build + docker compose). Следующий белый знак — MVP1 / 25 (Final QA) и 26 (Release checklist): сверить вручную на desktop/mobile.
+
+---
 
 ## 2026-08-29 — Agent
 
