@@ -820,7 +820,7 @@ Completion shown
 
 ## 24. MVP1 — Docker
 
-### 24.1. Production build
+### 24.1. Production build — [x]
 
 Архитектура MVP предполагает один runtime container.
 
@@ -847,7 +847,7 @@ Go server
 - Добавить data/puzzles.
 - Убедиться, что Go server раздаёт frontend assets.
 
-### 24.2. Docker Compose
+### 24.2. Docker Compose — [x]
 
 - Создать/обновить docker-compose.yml.
 - docker compose up запускает приложение.
@@ -1144,6 +1144,33 @@ Notes:
 Next:
 
 - MVP0 / 9.x — First vertical slice (отображение грида, выбор puzzle)
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
+- MVP1 / 24.1
+- MVP1 / 24.2
+
+Tests:
+
+- `docker compose up --build` — PASS (образы `nanograms-backend`, `nanograms-frontend` собраны).
+- curl через :8080 — PASS: `/` (200 HTML, bundle `index-BoADW8So.js`), `/api/v1/puzzles` (200, 4 кроссворда), `/api/v1/puzzles/001` (200, без `solution`), `/api/v1/puzzles/999` (404), SPA-fallback на несуществующий путь (200 text/html), JS/CSS ассеты (application/javascript, text/css).
+- Визуально в браузере подтверждено пользователем: каталог, переход на кроссворд, «← К каталогу».
+- `go test ./...`, `go vet ./...` — PASS (код backend не менялся).
+
+Notes:
+
+- Вместо задокументированного «единого контейнера» (текст 24.1) выбрана и согласована с пользователем двух-сервисная схема: frontend (nginx + dist, публичный порт 8080, proxy `/api` → backend) + backend (Go API, наружу не публикуется). Браузер ходит в один адрес без CORS; Go-сервер статику не раздаёт, остаётся чистым API.
+- Добавлены: `Dockerfile` (backend, multi-stage go→alpine), `frontend/Dockerfile` (node build → nginx), `frontend/nginx.conf` (static + `/api` proxy + SPA-fallback), `docker-compose.yml`, `.dockerignore`.
+- Особенность окружения: хостовый `package-lock.json` пинит tarball-URL'ы на корпоративный artifactory, а в контейнере его CA недоступен. В `frontend/Dockerfile` применён `sed`, переписывающий `resolved` на `registry.npmjs.org` внутри образа (исходный lock на хосте не тронут; dev на artifactory работает).
+- README.md: раздел «Запуск» обновлён на `docker compose up` (два сервиса, один публичный порт).
+
+Next:
+
+- MVP0 / 9.x — First vertical slice (отображение грида, hints, выбор puzzle). До конца MVP1 остаются задачи 10–23.
 
 ---
 
