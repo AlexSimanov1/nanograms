@@ -248,9 +248,10 @@ body {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   grid-template-rows: minmax(0, auto) 1fr;
-  /* Fit any screen: cap at 640px on wide displays, fill the viewport on
-     narrow ones so a 20×20 board scales down instead of overflowing. */
-  max-width: min(640px, 100%);
+  /* Fit any screen: cap at 720px on wide displays (roomier 20×20 cells on
+     desktop), fill the viewport on narrow ones so a 20×20 board scales down
+     instead of overflowing. */
+  max-width: min(720px, 100%);
 }
 
 .board-corner {
@@ -289,8 +290,16 @@ body {
 }
 
 .board-hint-num {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
+}
+
+/* Track a single row/column across a large board (20.1): tint every other
+   hint cell so adjacent rows/columns read as distinct bands. Each hint cell
+   is a grid item appended in row/column order, so nth-child is the parity. */
+.board-hint-row:nth-child(even),
+.board-hint-col:nth-child(even) {
+  background: #eef2f7;
 }
 
 /* Row hints band (one cell per row, numbers right-aligned) */
@@ -315,12 +324,25 @@ body {
   position: relative;
   background: #ffffff;
   aspect-ratio: 1 / 1;
+  /* Size the marked cross relative to the cell (20.1), so it scales cleanly
+     from a 5×5 up to a 20×20 board instead of overflowing tiny cells.
+     Container query units resolve against this cell's own size. */
+  container-type: size;
   /* Editing owns the touch: dragging paints cells instead of scrolling or
      zooming the page, and no text/selection or tap-flash gets in the way. */
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Active cell (20.1): the focused/last-touched cell is outlined even on
+   mouse/touch — the default :focus-visible only fires for keyboard input.
+   -3px offset keeps the ring inside the 1px grid gutter (no neighbour glare). */
+.cell:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -3px;
+  z-index: 1;
 }
 
 /* filled: solid fill */
@@ -335,7 +357,8 @@ body {
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 14px;
+  font-size: 45cqh; /* ~45% of the cell height — always fits, any board size */
+  font-weight: 600;
   line-height: 1;
   color: #52525b;
 }

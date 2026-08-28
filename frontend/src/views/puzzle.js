@@ -232,6 +232,10 @@ function gridView(progress, onCell) {
     lastKey = null
     grid.setPointerCapture(e.pointerId)
     e.preventDefault()
+    // Make the tapped cell the visible "active" cell (20.1): give it focus so
+    // the outline follows mouse/touch too, not only keyboard navigation.
+    // preventDefault above suppresses the default mouse focus, so set it here.
+    cell.focus()
     paint(cell)
     lastKey = cellKey(cell)
   })
