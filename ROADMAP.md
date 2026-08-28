@@ -1072,6 +1072,27 @@ Next:
 
 Completed:
 
+- MVP1 / 13.1 — Определена стратегия проверки решения: **server-side check**.
+
+Decision (13.1):
+
+- Проверять решение будет **только backend**. `solution` намеренно никогда не отдаётся клиенту (зафиксировано в `API.md` и в `puzzleDetailDTO`), поэтому frontend физически не может выполнить `current state == solution` локально, а передавать ответ во frontend значило бы раскрывать его — что ROADMAP (13.1) запрещает молча игнорировать. Вариант «trade-off с раскрытием ответа» отклонён.
+- Выбран вариант 2 ROADMAP: server-side check через новый endpoint `POST /api/v1/puzzles/{id}/check`.
+- Контракт: запрос `{ "cells": [[bool,…],…] }` (сетка `height×width`, `true` = клетка закрашена/filled; крестики и пустые = `false`, т.к. крестик — аннотация игрока, не часть ответа). Ответ `{ "correct": bool }` без раскрытия решения.
+- Коды: `200` — сверка, `400` — битый JSON/неверная размерность, `404` — puzzle не найден, `500` — внутренняя ошибка.
+- Границы: домен `Puzzle.IsSolvedBy([][]bool)` (чистая логика), application `service.Check`, http — тонкий слой. `solution` остаётся на сервере.
+- Реализация — задача MVP1 / 13.2.
+
+Next:
+
+- MVP1 / 13.2 — реализовать проверку (домен + application + http endpoint + тесты).
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
 - MVP1 / 12 — Mobile input (touch tap, переключение Закрасить / Крестик / Очистить, drag по клеткам, вёрстка под portrait/landscape и 20×20).
 
 Tests:
