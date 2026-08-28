@@ -205,6 +205,42 @@ body {
   color: #b91c1c;
 }
 
+/* Completion panel (19): shown in place of the action bar after solving. */
+
+.completion {
+  padding: 16px;
+  border: 1px solid #15803d;
+  border-radius: 8px;
+  background: #f0fdf4;
+}
+
+.completion-title {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.completion-time {
+  margin: 0 0 12px;
+}
+
+.completion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.button-next {
+  border-color: #15803d;
+  color: #15803d;
+}
+
+.button-next:hover {
+  border-color: #15803d;
+  background: #dcfce7;
+}
+
 /* Board layout: corner | column hints
                      row hints | grid      */
 

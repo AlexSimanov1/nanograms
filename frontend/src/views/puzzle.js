@@ -1,4 +1,4 @@
-import { checkPuzzle, fetchPuzzle } from '../api.js'
+import { checkPuzzle, fetchPuzzle, fetchPuzzles } from '../api.js'
 import { navigate } from '../router.js'
 import { createProgressStorage } from '../persistence.js'
 import {
@@ -27,6 +27,53 @@ const MODES = [
   { action: Action.MARK, label: 'Крестик', key: '2' },
   { action: Action.CLEAR, label: 'Очистить', key: '3' },
 ]
+
+// The next puzzle in the list after `currentId`, cycling around (19). Returns
+// null when there is nothing meaningful to jump to (list too small).
+export function nextPuzzleId(list, currentId) {
+  if (!Array.isArray(list) || list.length < 2) return null
+  const index = list.findIndex((p) => p.id === currentId)
+  if (index < 0) return list[0].id
+  return list[(index + 1) % list.length].id
+}
+
+// Completion panel shown in place of the action bar once a puzzle is solved
+// (19): final time plus "Следующий кроссворд" / "В каталог".
+function completionView(timeLabel, nextId) {
+  const box = document.createElement('div')
+  box.className = 'completion'
+  box.setAttribute('role', 'status')
+
+  const title = document.createElement('p')
+  title.className = 'completion-title'
+  title.textContent = 'Кроссворд решён!'
+
+  const time = document.createElement('p')
+  time.className = 'completion-time'
+  time.textContent = `Итоговое время: ${timeLabel}`
+
+  const actions = document.createElement('div')
+  actions.className = 'completion-actions'
+
+  const toCatalog = document.createElement('button')
+  toCatalog.className = 'button'
+  toCatalog.type = 'button'
+  toCatalog.textContent = 'В каталог'
+  toCatalog.addEventListener('click', () => navigate('/'))
+  actions.append(toCatalog)
+
+  if (nextId) {
+    const next = document.createElement('button')
+    next.className = 'button button-next'
+    next.type = 'button'
+    next.textContent = 'Следующий кроссворд'
+    next.addEventListener('click', () => navigate(`/puzzles/${nextId}`))
+    actions.prepend(next)
+  }
+
+  box.append(title, time, actions)
+  return box
+}
 
 function backView() {
   const back = document.createElement('button')
@@ -371,8 +418,17 @@ export function renderPuzzle(container, id) {
             current = complete(current)
             storage.saveProgress(current)
             renderTimer() // freezes the clock at the final time immediately
-            notice.textContent = 'Кроссворд решён!'
-            notice.className = 'puzzle-notice notice-success'
+
+            // Completion flow (19): replace the action bar with the result
+            // panel and offer the next puzzle when there is one.
+            const timeLabel = formatDuration(current.elapsedTime)
+            fetchPuzzles()
+              .then((list) => {
+                actionBar.replaceChildren(completionView(timeLabel, nextPuzzleId(list, puzzle.id)))
+              })
+              .catch(() => {
+                actionBar.replaceChildren(completionView(timeLabel, null))
+              })
           } else {
             notice.textContent = 'Есть неверные клетки. Проверьте поле.'
             notice.className = 'puzzle-notice notice-error'
