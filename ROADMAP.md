@@ -206,7 +206,7 @@ GET /health
 
 ## 3. MVP0 — Domain model
 
-### 3.1. Создать Puzzle
+### 3.1. Создать Puzzle — [x]
 
 Модель должна поддерживать требования документации:
 
@@ -1073,26 +1073,25 @@ Next:
 
 Completed:
 
-- MVP0 / 2.3
+- MVP0 / 3.1
 
 Tests:
 
-- `go test ./...` — PASS (включая internal/http TestHealth)
+- `go test ./...` — PASS (включая internal/domain TestPuzzleValidate)
 - `go vet ./...` — PASS
 - `gofmt` — clean
-- `go build ./cmd/server` — PASS
-- Живая проверка: `GET /health` → 200, body `{"status":"ok"}`
 
 Notes:
 
-- internal/http/server.go: роутер (ServeMux) с endpoint GET /health.
-- cmd/server/main.go: точка входа, конфигурация HTTP_ADDR (default :8080), slog-логирование, graceful shutdown (SIGINT/SIGTERM + таймаут 10s), http.Server c ReadHeaderTimeout.
-- Только stdlib, без внешних зависимостей.
-- Приложение запускал и проверяю пользователь вручную вне Docker.
+- internal/domain/puzzle.go: модель Puzzle (ID, Title, Width, Height, Difficulty, RowHints, ColumnHints, Solution).
+- Solution типа [][]bool — эталонный ответ (заполнена клетка или нет), независим от пользовательского CellState (3.2).
+- Domain-модель не смешана с HTTP DTO; зависит только от stdlib.
+- Validate(): непустой ID, положительные размеры, согласованность длины rowHints/columnHints/solution с габаритами.
+- Проверка «hints соответствуют solution» отложена на 4.x (загрузка JSON) — это осознанно, чтобы не раздувать 3.1.
 
 Next:
 
-- MVP0 / 3.1 — создать Puzzle
+- MVP0 / 3.2 — создать CellState
 
 ---
 
