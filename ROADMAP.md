@@ -226,7 +226,7 @@ GET /health
 - Не смешивать HTTP DTO и domain model.
 - Добавить необходимые domain-level validation rules.
 
-### 3.2. Создать CellState
+### 3.2. Создать CellState — [x]
 
 Определить три состояния: `empty`, `filled`, `marked`.
 
@@ -1073,25 +1073,24 @@ Next:
 
 Completed:
 
-- MVP0 / 3.1
+- MVP0 / 3.2
 
 Tests:
 
-- `go test ./...` — PASS (включая internal/domain TestPuzzleValidate)
+- `go test ./...` — PASS (включая internal/domain TestCellStateValid, TestCellStateString)
 - `go vet ./...` — PASS
 - `gofmt` — clean
 
 Notes:
 
-- internal/domain/puzzle.go: модель Puzzle (ID, Title, Width, Height, Difficulty, RowHints, ColumnHints, Solution).
-- Solution типа [][]bool — эталонный ответ (заполнена клетка или нет), независим от пользовательского CellState (3.2).
-- Domain-модель не смешана с HTTP DTO; зависит только от stdlib.
-- Validate(): непустой ID, положительные размеры, согласованность длины rowHints/columnHints/solution с габаритами.
-- Проверка «hints соответствуют solution» отложена на 4.x (загрузка JSON) — это осознанно, чтобы не раздувать 3.1.
+- internal/domain/cellstate.go: тип CellState (int) с константами CellEmpty, CellFilled, CellMarked («крестик», в PRD — cross).
+- Безопасные значения: константы вместо произвольных строк.
+- Valid() — проверка, что значение определённое; String() — стабильное имя (empty/filled/marked, иначе CellState(n)) для логов/ошибок.
+- Не смешано с HTTP; зависит только от stdlib.
 
 Next:
 
-- MVP0 / 3.2 — создать CellState
+- MVP0 / 3.3 — создать PuzzleProgress
 
 ---
 
