@@ -285,7 +285,7 @@ PuzzleProgress
 - Проверить наличие всех обязательных полей.
 - Версионировать формат через version.
 
-### 4.2. Добавить тестовые puzzles
+### 4.2. Добавить тестовые puzzles — [x]
 
 Создать минимум:
 
@@ -1073,24 +1073,25 @@ Next:
 
 Completed:
 
-- MVP0 / 4.1
+- MVP0 / 4.2
 
 Tests:
 
-- `go test ./...` — PASS (internal/domain: TestRowRuns, TestValidateClueConsistency; internal/storage: TestDecodePuzzle, TestDecodePuzzleErrors)
+- `go test ./...` — PASS
 - `go vet ./...` — PASS
 - `gofmt` — clean
+- Все 4 файла прогнаны через storage.DecodePuzzle при генерации — PASS
 
 Notes:
 
-- internal/storage/puzzlejson.go: фиксирует schema v1 (puzzleFormatVersion=1, camelCase то же, что в ROADMAP) + DecodePuzzle() = decode + валидация → domain.Puzzle.
-- Валидация: version поддерживается; обязательные поля и согласованность размеров — через domain.Puzzle.Validate(); корректность solution — через новый domain.ValidateClueConsistency().
-- internal/domain/clues.go: rowRuns() (run-длины) и ValidateClueConsistency() (сверка rowHints/columnHints с solution).
-- Проверка корректности solution реализована как сверка hints ↔ solution (иначе битые данные могли бы пройти).
+- data/puzzles: 001.json (5×5 «Cross», easy), 002.json (10×10 «Frame», medium), 003.json (15×15 «Diamond», medium), 004.json (20×20 «Star», hard).
+- rowHints/columnHints вычислены программно из solution (исключены ошибки ручного подсчёта) → гарантирована согласованность hints ↔ solution.
+- Решаемость: узнаваемые симметричные фигуры (крест, рамка, ромб, звезда), не вырожденные.
+- Временный генератор (tools/genpuzzles) после создания файлов удалён — в репо остаются только данные.
 
 Next:
 
-- MVP0 / 4.2 — добавить тестовые puzzles
+- MVP0 / 5.1 — создать repository interface
 
 ---
 
