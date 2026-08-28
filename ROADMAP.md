@@ -410,7 +410,7 @@ frontend/
 - Настроить dev build.
 - Настроить production build.
 
-### 8.2. Создать application shell
+### 8.2. Создать application shell — [x]
 
 - Создать главную страницу.
 - Создать базовую navigation.
@@ -1116,6 +1116,34 @@ Notes:
 Next:
 
 - MVP0 / 8.2 — создать application shell
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
+- MVP0 / 8.2
+
+Tests:
+
+- `npm run build` — PASS (9 модулей; `dist/assets` пересобран: `index-BoADW8So.js`, `index-BuQvKpYq.css`).
+- API через dev-прокси (:5173) — PASS: `/api/v1/puzzles` (200, 4 кроссворда), `/api/v1/puzzles/001` (200, hints без `solution`), `/api/v1/puzzles/999` (404).
+- Модули приложения отдаются Vite корректно (200 для `/src/main.js`, `views/catalog.js`, `api.js`).
+- `go vet ./...`, `go test ./...` — PASS (backend не затронут).
+- Визуально в браузере подтверждено пользователем: каталог (4 карточки), переход на страницу кроссворда, «← К каталогу».
+
+Notes:
+
+- Реализован application shell (Vanilla JS, без фреймворка): API client (`src/api.js`), hash-роутер (`src/router.js`), представления каталога (`src/views/catalog.js`) и заглушки страницы кроссворда (`src/views/puzzle.js`), точка входа (`src/main.js`), расширены стили (`src/style.css`).
+- Каталог рендерит список из API с loading / error(«Повторить») / empty состояниями; клик по карточке → `#/puzzles/{id}`.
+- Все элементы DOM строятся через `createElement` + `textContent` (без `innerHTML` с данными из API).
+- Grid, hints и проверка решения — задача 9.x.
+- Политика запуска: без явного разрешения пользователя `go run`/`npm run` не запускались; `npm run build` пользователь разрешил выполнять мне.
+
+Next:
+
+- MVP0 / 9.x — First vertical slice (отображение грида, выбор puzzle)
 
 ---
 
