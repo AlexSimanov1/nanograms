@@ -519,6 +519,12 @@ export function renderPuzzle(container, id) {
       content.replaceChildren(toolbar, boardView(puzzle, current, onCell), actionBar)
     })
     .catch((err) => {
+      // A missing puzzle has no point retrying; send the user back to the
+      // catalog with a clear message instead of a raw "404" (22).
+      if (err && err.status === 404) {
+        content.replaceChildren(errorView('кроссворд не найден', () => navigate('/')))
+        return
+      }
       const message = err && err.message ? err.message : 'неизвестная ошибка'
       content.replaceChildren(errorView(message, () => renderPuzzle(container, id)))
     })

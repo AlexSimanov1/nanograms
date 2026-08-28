@@ -754,20 +754,20 @@ Puzzle
 
 **Frontend**
 
-- API loading state.
-- API error state.
-- Puzzle not found.
-- Invalid localStorage.
-- Некорректные puzzle data.
-- Пользователь не теряет progress из-за обычной ошибки загрузки.
+- API loading state. — [x]
+- API error state. — [x]
+- Puzzle not found. — [x]
+- Invalid localStorage. — [x]
+- Некорректные puzzle data. — [x]
+- Пользователь не теряет progress из-за обычной ошибки загрузки. — [x]
 
 **Backend**
 
-- 404 для отсутствующего puzzle.
-- Корректные HTTP status codes.
-- Ошибки JSON не приводят к panic.
-- Ошибки storage логируются.
-- Server не падает из-за одного повреждённого puzzle.
+- 404 для отсутствующего puzzle. — [x]
+- Корректные HTTP status codes. — [x]
+- Ошибки JSON не приводят к panic. — [x]
+- Ошибки storage логируются. — [x]
+- Server не падает из-за одного повреждённого puzzle. — [x]
 
 ---
 
@@ -1067,6 +1067,32 @@ Next:
 **Progress**
 
 <!-- AGENTS: append progress entries below this line -->
+
+## 2026-08-29 — Agent
+
+Completed:
+
+- MVP1 / 22 — Error handling (frontend: человечное сообщение при 404; остальное уже было покрыто).
+
+Tests:
+
+- `npm test` (Vitest) — PASS: 53 теста (нет регрессий).
+- `npm run build` — PASS (11 модулей; `dist/assets/index-BEtG7HBe.js`).
+- `docker compose build frontend && up` — PASS: `:8080` раздаёт свежий bundle (проверено про «кроссворд не найден»); `GET /api/v1/puzzles/999` → 404 `{"error":"puzzle not found"}`, `/` 200.
+
+Notes:
+
+- **Сверка чек-листа 22.** Backend и большая часть frontend уже были закрыты прошлыми задачами:
+  - Backend: 404 (`ErrPuzzleNotFound` → 404), корректные status codes (400/404/500), ошибки JSON не паникуют (Decode → 400), ошибки storage логируются (`log.Warn` в `List` при skip, `log.Error` в handlers), сервер не падает из-за одного битого puzzle (`List` скипает и логирует).
+  - Frontend: loading state, error state «Повторить», invalid localStorage (нормализация без падения), некорректные puzzle data (битый puzzle → экран ошибки), ошибка загрузки не стирает сохранённый progress.
+- **Что добавлено в 22 (`views/puzzle.js`)**: human-readable сообщение при `Puzzle not found`. Раньше при 404 показывалось техническое «Не удалось загрузить кроссворд: request failed (404)» + кнопка «Повторить», которая повторяла бессмысленный запрос. Теперь в catch-ветке 404 (`err.status === 404`) показывается «Не удалось загрузить кроссворд: кроссворд не найден», а кнопка ведёт в каталог (`navigate('/')`) вместо повторной загрузки несуществующего кроссворда. Progress пользователя не затирается.
+- Ручная проверка: `http://localhost:8080/#/puzzles/999` → человечное сообщение + кнопка «Повторить» уводит в каталог.
+
+Next:
+
+- MVP1 / 23 — Tests (проверить покрытие backend/frontend по чек-листу, дополнить где не хватает).
+
+---
 
 ## 2026-08-29 — Agent
 
