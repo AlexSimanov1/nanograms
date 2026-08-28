@@ -261,7 +261,7 @@ PuzzleProgress
 
 ## 4. MVP0 — Puzzle JSON format
 
-### 4.1. Зафиксировать JSON schema v1
+### 4.1. Зафиксировать JSON schema v1 — [x]
 
 Каждый puzzle должен содержать:
 
@@ -1073,25 +1073,24 @@ Next:
 
 Completed:
 
-- MVP0 / 3.3
+- MVP0 / 4.1
 
 Tests:
 
-- `go test ./...` — PASS (internal/domain: ProgressStatus, NewPuzzleProgress, Start, SetCell, Complete, Reset)
+- `go test ./...` — PASS (internal/domain: TestRowRuns, TestValidateClueConsistency; internal/storage: TestDecodePuzzle, TestDecodePuzzleErrors)
 - `go vet ./...` — PASS
 - `gofmt` — clean
 
 Notes:
 
-- internal/domain/progressstatus.go: тип ProgressStatus (not_started/in_progress/completed) + Valid()/String().
-- internal/domain/puzzleprogress.go: модель PuzzleProgress (PuzzleID, Cells [][]CellState, Status, StartedAt, ElapsedTime, CompletedAt).
-- Правила переходов как методы: NewPuzzleProgress (пустое поле под размеры Puzzle), Start (not_started→in_progress), SetCell (границы + валидность состояния + блокировка изменения completed), Complete (in_progress→completed, no-op из not_started), Reset (очистка поля, сброс статуса и времён).
-- Детерминированность: время передаётся параметром «now», time.Now() внутри нет — тесты детерминированы.
-- Статусы не_started/in_progress/completed — как в 15.x.
+- internal/storage/puzzlejson.go: фиксирует schema v1 (puzzleFormatVersion=1, camelCase то же, что в ROADMAP) + DecodePuzzle() = decode + валидация → domain.Puzzle.
+- Валидация: version поддерживается; обязательные поля и согласованность размеров — через domain.Puzzle.Validate(); корректность solution — через новый domain.ValidateClueConsistency().
+- internal/domain/clues.go: rowRuns() (run-длины) и ValidateClueConsistency() (сверка rowHints/columnHints с solution).
+- Проверка корректности solution реализована как сверка hints ↔ solution (иначе битые данные могли бы пройти).
 
 Next:
 
-- MVP0 / 4.1 — зафиксировать JSON schema v1
+- MVP0 / 4.2 — добавить тестовые puzzles
 
 ---
 
