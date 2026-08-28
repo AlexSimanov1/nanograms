@@ -124,6 +124,10 @@ function focusCell(grid, row, col, height, width) {
 
 // The playable grid of width × height cells. Emits input via `onCell`,
 // which receives (row, col) and returns the resulting CellState for the cell.
+// Input works with mouse, touch and pen through Pointer Events: a tap paints
+// one cell, a drag paints the stroke the pointer crosses. No right-click or
+// hover is ever required (mobile rule). `touch-action: none` on cells (CSS)
+// keeps a touch-drag from scrolling or zooming the page instead of painting.
 function gridView(progress, onCell) {
   const { width, height, cells } = progress
   const grid = document.createElement('div')
@@ -132,6 +136,18 @@ function gridView(progress, onCell) {
   grid.setAttribute('aria-label', 'Игровое поле')
   grid.style.gridTemplateColumns = `repeat(${width}, 1fr)`
   grid.style.gridTemplateRows = `repeat(${height}, 1fr)`
+
+  // A pointer is dragging across the board only while a button is held.
+  let dragging = false
+
+  // The cell painted last on the active stroke, so pointermove does not
+  // repaint the same cell on every movement event.
+  let lastKey = null
+  const cellKey = (el) => `${el.dataset.row}:${el.dataset.col}`
+
+  const paint = (cellEl) => {
+    onCell(Number(cellEl.dataset.row), Number(cellEl.dataset.col))
+  }
 
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
@@ -142,10 +158,45 @@ function gridView(progress, onCell) {
       cell.dataset.col = c
       cell.tabIndex = r === 0 && c === 0 ? 0 : -1
       renderCell(cell, cells[r][c])
-      cell.addEventListener('click', () => onCell(r, c))
       grid.append(cell)
     }
   }
+
+  // Start a stroke on a primary-button press over a cell.
+  grid.addEventListener('pointerdown', (e) => {
+    const cell = e.target.closest('.cell')
+    if (!cell || dragging || e.button !== 0) return
+    dragging = true
+    lastKey = null
+    grid.setPointerCapture(e.pointerId)
+    e.preventDefault()
+    paint(cell)
+    lastKey = cellKey(cell)
+  })
+
+  // While the button is held, find the cell under the pointer and paint it.
+  // elementFromPoint is used instead of pointerenter (which does not bubble
+  // to the grid listener) and stays reliable under pointer capture and for
+  // fast strokes that would otherwise skip cells.
+  grid.addEventListener('pointermove', (e) => {
+    if (!dragging) return
+    const under = document.elementFromPoint(e.clientX, e.clientY)
+    const cell = under && under.closest('.cell')
+    if (!cell) return
+    const key = cellKey(cell)
+    if (key === lastKey) return
+    paint(cell)
+    lastKey = key
+  })
+
+  // No paints between strokes: a drag paints only while the button is held,
+  // never from stray movement after release.
+  const stopDragging = () => {
+    dragging = false
+  }
+  grid.addEventListener('pointerup', stopDragging)
+  grid.addEventListener('pointercancel', stopDragging)
+  grid.addEventListener('lostpointercapture', stopDragging)
 
   // Mouse-independent keyboard navigation: arrows move focus, Space/Enter act.
   grid.addEventListener('keydown', (e) => {

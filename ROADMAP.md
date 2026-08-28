@@ -1072,7 +1072,30 @@ Next:
 
 Completed:
 
-- MVP1 / 11 — Desktop input (клик, выбор действия, клавиатура, focus states).
+- MVP1 / 12 — Mobile input (touch tap, переключение Закрасить / Крестик / Очистить, drag по клеткам, вёрстка под portrait/landscape и 20×20).
+
+Tests:
+
+- `npm test` (Vitest) — PASS: 15 тестов (чистая логика переходов не менялась).
+- `npm run build` — PASS (10 модулей; `dist` пересобран).
+- `docker compose build frontend && up` — PASS: `:8080` отдаёт свежий bundle `index-BUGVcufP.js`, `GET /` 200.
+- `go test ./...` — PASS (backend не затронут).
+
+Notes:
+
+- **Drag по клеткам** реализован через Pointer Events (единый механизм для mouse/touch/pen): `pointerdown` (основная кнопка `button===0`) + `setPointerCapture` + `pointerenter`-во-время-дрэга красят закрашиваемую клетку; `pointerup`/`pointercancel`/`lostpointercapture` завершают штрих. `pointerenter` бьёт по элементу под указателем даже при захвате — так проводится непрерывная линия.
+- **Требование «drag не создаёт неожиданных изменений»**: покраска только при зажатом указателе и основной кнопке; вторая точка мульти-тача игнорируется (`dragging`); right-click (`button 2`) игнорируется — правый клик и hover по-прежнему нигде не требуются.
+- **CSS/mobile**: `.cell { touch-action:none; user-select:none; -webkit-tap-highlight-color:transparent }` — тап/дрэг рисует, а не скроллит/зумит страницу; `.puzzle-board { max-width:min(640px,100%) }` — доска вписывается в ширину экрана (раньше 640px переполняла телефоны); `@media (max-width:480px)` уменьшает подсказки, чтобы 20×20 был играбелен в portrait без zoom; кнопки тулбара крупнее (touch-target), `.button { touch-action:manipulation }` убирает double-tap-zoom.
+- Тап (одиночный pointerdown) работает и на touch, и на мыши; клавиатурная навигация не тронута.
+- Проверка drag — glue-логика в DOM-представлении (`puzzle.js`), чистая логика переходов уже покрыта `game.test.js`; jsdom-зависимость для теста DOM не добавлял (over-engineering для пет-проекта).
+- Визуально проверить tap/drag на устройстве: `http://localhost:8080/` (контейнер пересобран).
+
+Next:
+
+- MVP1 / 13 — Puzzle validation (стратегия проверки решения frontend/backend + реализация).
+
+---
+
 
 Tests:
 

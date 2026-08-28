@@ -2,9 +2,7 @@
 *::before,
 *::after {
   box-sizing: border-box;
-}
-
-html,
+}html,
 body {
   margin: 0;
   min-height: 100%;
@@ -48,6 +46,8 @@ body {
   background: #ffffff;
   color: #18181b;
   cursor: pointer;
+  /* Mobile: disable double-tap-to-zoom on the control, keep single-tap fast. */
+  touch-action: manipulation;
 }
 
 .button:hover {
@@ -65,6 +65,11 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+}
+
+.tool-button {
+  flex: 1 1 auto;
+  padding: 12px 10px; /* roomier touch target on mobile */
 }
 
 .tool-button-active,
@@ -131,7 +136,9 @@ body {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   grid-template-rows: minmax(0, auto) 1fr;
-  max-width: 640px;
+  /* Fit any screen: cap at 640px on wide displays, fill the viewport on
+     narrow ones so a 20×20 board scales down instead of overflowing. */
+  max-width: min(640px, 100%);
 }
 
 .board-corner {
@@ -196,6 +203,12 @@ body {
   position: relative;
   background: #ffffff;
   aspect-ratio: 1 / 1;
+  /* Editing owns the touch: dragging paints cells instead of scrolling or
+     zooming the page, and no text/selection or tap-flash gets in the way. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* filled: solid fill */
@@ -213,4 +226,17 @@ body {
   font-size: 14px;
   line-height: 1;
   color: #52525b;
+}
+
+/* Narrow screens: shrink hint padding/font so the grid keeps most of the
+   width (a 20×20 board stays usable in portrait without zooming). */
+@media (max-width: 480px) {
+  .board-hint {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .board-hint-num {
+    font-size: 11px;
+  }
 }
