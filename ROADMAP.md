@@ -1072,6 +1072,33 @@ Next:
 
 Completed:
 
+- MVP0 / 9.x — First vertical slice (отображение доски) — подтверждено визуально через Docker.
+- MVP1 / 10.1 — состояние игрового поля.
+
+Tests:
+
+- `npm run build` — PASS (10 модулей).
+- `node --input-type=module` sanity-check модуля `game.js` — PASS (размеры, пустое состояние, валидация размеров, независимость строк).
+- `go vet ./...`, `go test ./...` — PASS (backend не затронут).
+- Docker `:8080` — PASS: `/` 200, API `/api/v1/puzzles` и `004` (20×20) отвечают, SPA отдаёт актуальный bundle.
+
+Notes:
+
+- **9.x**: заглушка страницы кроссворда заменена реальной отрисовкой nonogram-доски (corner + column hints сверху + row hints слева + grid `width×height`); коммит-подход как в каталоге (loading / error(«Повторить»), `createElement`/`textContent`, без `innerHTML`); клетки квадратные (`aspect-ratio`), доска ограничена 640px, чтобы 20×20 помещался.
+- **10.1**: новый чистый модуль `frontend/src/game.js` — `CellState` (empty/filled/marked), `ProgressStatus` (not_started/in_progress/completed), `createEmptyProgress({width,height})` с валидацией размеров (без DOM-зависимости, детерминированный, тестируемый). `puzzle.js` при открытии кроссворда создаёт пустой прогресс и рендерит грид из состояния (`data-state` + класс `cell--filled`/`cell--marked`).
+- Стили состояний: filled — заливка, marked — глиф «✕» (не только цвет, часть a11y).
+- Клетки пока не интерактивны — ввод и переходы состояний это 10.2.
+
+Next:
+
+- MVP1 / 10.2 — изменение клетки (fill / mark / clear) + тесты переходов состояний. Потребуется вопрос о frontend-тест-раннере (в frontend сейчас только Vite, раннера нет).
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
 - MVP0 / 9.x — First vertical slice (отображение грида и подсказок).
 
 Tests:

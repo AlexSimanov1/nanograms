@@ -170,6 +170,24 @@ body {
 }
 
 .cell {
+  position: relative;
   background: #ffffff;
   aspect-ratio: 1 / 1;
+}
+
+/* filled: solid fill */
+.cell--filled {
+  background: #18181b;
+}
+
+/* marked: a cross, shown with a glyph so it is not color-only (a11y) */
+.cell--marked::after {
+  content: '✕';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  line-height: 1;
+  color: #52525b;
 }

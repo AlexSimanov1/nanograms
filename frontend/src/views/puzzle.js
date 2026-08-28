@@ -1,9 +1,10 @@
 import { fetchPuzzle } from '../api.js'
 import { navigate } from '../router.js'
+import { CellState, createEmptyProgress } from '../game.js'
 
-// Puzzle page (MVP0 / 9.x, first vertical slice). Renders the static grid
-// with row/column hints loaded from the API. Cells are not interactive yet —
-// cell state and input arrive in MVP1 (tasks 10+).
+// Puzzle page (MVP0 / 9.x + MVP1 / 10.1). Renders the grid with row/column
+// hints loaded from the API and reflects the client-side game state (empty /
+// filled / marked). Cells are not interactive yet — input arrives in 10.2+.
 
 function backView() {
   const back = document.createElement('button')
@@ -79,8 +80,9 @@ function rowHintsView(rowHints, height) {
   return el
 }
 
-// The empty playable grid of width × height cells.
-function gridView(width, height) {
+// The playable grid of width × height cells, reflecting the current state.
+function gridView(progress) {
+  const { width, height, cells } = progress
   const grid = document.createElement('div')
   grid.className = 'board-grid'
   grid.setAttribute('role', 'grid')
@@ -93,13 +95,17 @@ function gridView(width, height) {
       cell.className = 'cell'
       cell.dataset.row = r
       cell.dataset.col = c
+      cell.dataset.state = cells[r][c]
+      if (cells[r][c] !== CellState.EMPTY) {
+        cell.classList.add(`cell--${cells[r][c]}`)
+      }
       grid.append(cell)
     }
   }
   return grid
 }
 
-function boardView(puzzle) {
+function boardView(puzzle, progress) {
   const board = document.createElement('div')
   board.className = 'puzzle-board'
 
@@ -110,7 +116,7 @@ function boardView(puzzle) {
     corner,
     columnHintsView(puzzle.columnHints, puzzle.width),
     rowHintsView(puzzle.rowHints, puzzle.height),
-    gridView(puzzle.width, puzzle.height),
+    gridView(progress),
   )
   return board
 }
@@ -140,9 +146,11 @@ export function renderPuzzle(container, id) {
 
   fetchPuzzle(id)
     .then((puzzle) => {
+      const progress = createEmptyProgress(puzzle)
+      progress.puzzleId = puzzle.id
       heading.textContent = puzzle.title
       heading.after(metaView(puzzle))
-      content.replaceChildren(boardView(puzzle))
+      content.replaceChildren(boardView(puzzle, progress))
     })
     .catch((err) => {
       const message = err && err.message ? err.message : 'неизвестная ошибка'
