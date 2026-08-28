@@ -394,7 +394,7 @@ Application layer не знает, что данные находятся в JSO
 
 ## 8. MVP0 — Frontend skeleton
 
-### 8.1. Создать frontend module
+### 8.1. Создать frontend module — [x]
 
 Предпочтительная структура:
 
@@ -1088,7 +1088,34 @@ Notes:
 
 Next:
 
-- MVP0 / 8.1 — создать frontend module
+- MVP0 / 8.2 — создать application shell
+
+---
+
+## 2026-08-28 — Agent
+
+Completed:
+
+- MVP0 / 8.1
+
+Tests:
+
+- `npm run build` — PASS (в `frontend/dist` собран production bundle).
+- `npm run dev` — PASS (Vite dev-server на :5173; proxy `/api` → :8080 проверен на живых ответах Go-backend).
+- `go vet ./...`, `go test ./...` — PASS (backend не затронут).
+
+Notes:
+
+- Создан frontend module на стеке Vanilla JS + Vite (без UI-фреймворка): `frontend/package.json`, `vite.config.js`, `index.html`, `src/main.js`, `src/style.css`, `frontend/.gitignore`.
+- dev-build (`vite`) и production-build (`vite build` → `dist/`) настроены.
+- В `vite.config.js` настроен proxy `/api` → `http://localhost:8080`, чтобы в dev-режиме frontend обращался к Go-backend через API без CORS.
+- Временный application shell в `main.js` (заголовок + контейнер) — каркас под 8.2.
+- Примечание по окружению: npm подключён к внутреннему artifactory; на этой машине установка зависимостей требует `NODE_OPTIONS=--use-system-ca` (корпоративный CA в системной ключнице). Это локальная особенность, в коммит не фиксируется.
+- Go-backend пока не раздаёт статику frontend — это задача 24.1 (Docker). Отображение (вертикальный срез) — 9.x.
+
+Next:
+
+- MVP0 / 8.2 — создать application shell
 
 ---
 
