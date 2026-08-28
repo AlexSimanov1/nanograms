@@ -151,6 +151,21 @@ export function elapsedMs(progress, now = Date.now()) {
   return now - progress.startedAt
 }
 
+// Discard all progress on a puzzle: clear every cell, return status to
+// NOT_STARTED and drop the timer and completion times (17). The puzzle itself
+// is untouched. Immutable, like the other transitions.
+export function reset(progress) {
+  const cells = progress.cells.map((row) => row.map(() => CellState.EMPTY))
+  const { completedAt, ...rest } = progress
+  return {
+    ...rest,
+    cells,
+    status: ProgressStatus.NOT_STARTED,
+    startedAt: null,
+    elapsedTime: 0,
+  }
+}
+
 // Render milliseconds as "MM:SS", or "H:MM:SS" once an hour is passed.
 export function formatDuration(ms) {
   const total = Math.max(0, Math.floor(ms / 1000))

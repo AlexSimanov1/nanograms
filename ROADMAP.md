@@ -668,12 +668,12 @@ current state == solution
 
 ## 17. MVP1 — Reset
 
-- Добавить действие Сбросить.
-- Запрашивать подтверждение, если это необходимо для UX.
-- Очищать все клетки.
-- Не удалять сам puzzle.
-- Корректно обновлять progress.
-- Корректно обновлять timer/status.
+- Добавить действие Сбросить. — [x]
+- Запрашивать подтверждение, если это необходимо для UX. — [x]
+- Очищать все клетки. — [x]
+- Не удалять сам puzzle. — [x]
+- Корректно обновлять progress. — [x]
+- Корректно обновлять timer/status. — [x]
 
 ---
 
@@ -1067,6 +1067,31 @@ Next:
 **Progress**
 
 <!-- AGENTS: append progress entries below this line -->
+
+## 2026-08-29 — Agent
+
+Completed:
+
+- MVP1 / 17 — Reset (Сбросить: очистка клеток, подтверждение, сброс progress/timer/status).
+
+Tests:
+
+- `npm test` (Vitest) — PASS: 49 тестов (добавлены блок `reset (17)` в game.test.js и round-trip reset в persistence.test.js).
+- `npm run build` — PASS (11 модулей; `dist/assets/index-BGuDZvKZ.js`).
+- `docker compose build frontend && up` — PASS: `:8080` раздаёт свежий bundle, код сброса присутствует.
+
+Notes:
+
+- **Модель (`game.js`)**: чистая иммутабельная `reset(progress)` — очищает все клетки до `empty`, переводит статус в `NOT_STARTED`, обнуляет `startedAt`/`elapsedTime`, удаляет `completedAt`. Сам puzzle (puzzleId/width/height) не трогается. Семантика соответствует эталону Go `PuzzleProgress.Reset()` (internal/domain/puzzleprogress.go).
+- **UI (`views/puzzle.js`)**: кнопка «Сбросить» (`button-reset`, разрушительный вид) в actionbar. По клику — `window.confirm('Сбросить кроссворд? …')`; при подтверждении `current = reset(current)`, автосохранение `storage.saveProgress`, `renderTimer()` (таймер сбрасывается на 00:00, т.к. `elapsedMs` для NOT_STARTED с `startedAt: null` = 0), перерисовка всех клеток через `renderCell`, очистка уведомления. Кнопка работает и на решённом (completed) кроссворде — возвращает его в «не начат».
+- **persistence**: `saveProgress` после reset пишет запись `not_started` с `startedAt: null`, `elapsedTime: 0` и без `completedAt` — статус в каталоге корректно возвращается к «Не начат».
+- Тестирование без jsdom сохранено: `reset` — чистая функция; round-trip reset проверяется через fake storage.
+
+Next:
+
+- MVP1 / 18 — Catalog (показ title/size/difficulty/status уже реализован в 15; здесь: кнопки Начать/Продолжить/Решён и обновление после completion) — уточнить границы с учётом сделанного.
+
+---
 
 ## 2026-08-29 — Agent
 

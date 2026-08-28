@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createProgressStorage, STORAGE_KEY } from './persistence.js'
-import { CellState, ProgressStatus, complete, createEmptyProgress, fill } from './game.js'
+import { CellState, ProgressStatus, complete, createEmptyProgress, fill, reset } from './game.js'
 
 // A tiny in-memory storage that speaks getItem/setItem, standing in for
 // localStorage so persistence tests run in the plain node environment.
@@ -193,6 +193,21 @@ describe('persistence', () => {
     const loaded = createProgressStorage(storage).loadProgress('001')
     expect(loaded.startedAt).toBeNull()
     expect(loaded.elapsedTime).toBe(0)
+  })
+
+  it('persists a reset as a fresh not_started puzzle without timestamps', () => {
+    const storage = fakeStorage()
+    const s = createProgressStorage(storage)
+    s.saveProgress(complete(fill(makeProgress('001'), 0, 0)))
+    // Reset wipes the studying session back to a clean slate.
+    s.saveProgress(reset(createProgressStorage(storage).loadProgress('001')))
+
+    const restored = createProgressStorage(storage).loadProgress('001')
+    expect(restored.status).toBe(ProgressStatus.NOT_STARTED)
+    expect(restored.startedAt).toBeNull()
+    expect(restored.elapsedTime).toBe(0)
+    expect('completedAt' in restored).toBe(false)
+    expect(restored.cells.flat().every((c) => c === CellState.EMPTY)).toBe(true)
   })
 
   it('listStatuses is empty when nothing is stored', () => {

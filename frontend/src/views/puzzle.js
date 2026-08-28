@@ -11,6 +11,7 @@ import {
   elapsedMs,
   filledGrid,
   formatDuration,
+  reset,
 } from '../game.js'
 
 // Puzzle page (MVP0 / 9.x + MVP1 / 10.x + 11 + 14). Renders the grid with row
@@ -388,6 +389,30 @@ export function renderPuzzle(container, id) {
       // elapsedTime once completed. The interval stops when the puzzle is
       // solved or the node leaves the DOM (navigation away), so it never
       // ticks on another page.
+      // "Сбросить" wipes the grid, the timer and the status back to a fresh
+      // puzzle after a confirmation, since it discards real progress (17).
+      // The puzzle itself is untouched.
+      const resetBtn = document.createElement('button')
+      resetBtn.className = 'button button-reset'
+      resetBtn.type = 'button'
+      resetBtn.textContent = 'Сбросить'
+      resetBtn.addEventListener('click', () => {
+        if (!window.confirm('Сбросить кроссворд? Весь текущий прогресс будет удалён.')) {
+          return
+        }
+        current = reset(current)
+        storage.saveProgress(current)
+        renderTimer()
+        notice.textContent = ''
+        notice.className = 'puzzle-notice'
+        for (const cellEl of content.querySelectorAll('.cell')) {
+          renderCell(
+            cellEl,
+            current.cells[Number(cellEl.dataset.row)][Number(cellEl.dataset.col)],
+          )
+        }
+      })
+
       const timer = document.createElement('span')
       timer.className = 'puzzle-timer'
       timer.setAttribute('aria-label', 'Время решения')
@@ -409,7 +434,7 @@ export function renderPuzzle(container, id) {
 
       const actionBar = document.createElement('div')
       actionBar.className = 'actionbar'
-      actionBar.append(timer, checkBtn, notice)
+      actionBar.append(timer, checkBtn, resetBtn, notice)
 
       heading.textContent = puzzle.title
       heading.after(metaView(puzzle))

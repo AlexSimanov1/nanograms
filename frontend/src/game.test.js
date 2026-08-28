@@ -11,6 +11,7 @@ import {
   fill,
   formatDuration,
   mark,
+  reset,
   clear,
 } from './game.js'
 
@@ -202,6 +203,36 @@ describe('timer model (16)', () => {
   it('complete on a fresh (never started) puzzle yields zero elapsed', () => {
     const done = complete(makeProgress())
     expect(done.elapsedTime).toBe(0)
+  })
+})
+
+describe('reset (17)', () => {
+  it('clears every cell and returns to NOT_STARTED', () => {
+    let p = fill(makeProgress(3, 3), 0, 0)
+    p = mark(p, 2, 2)
+    const r = reset(p)
+    expect(r.status).toBe(ProgressStatus.NOT_STARTED)
+    expect(r.cells.flat().every((c) => c === CellState.EMPTY)).toBe(true)
+    // original untouched
+    expect(p.status).toBe(ProgressStatus.IN_PROGRESS)
+    expect(state(p, 0, 0)).toBe(CellState.FILLED)
+  })
+
+  it('drops the timer and completion times', () => {
+    const done = complete(fill(makeProgress(), 0, 0))
+    const r = reset(done)
+    expect(r.startedAt).toBeNull()
+    expect(r.elapsedTime).toBe(0)
+    expect('completedAt' in r).toBe(false)
+  })
+
+  it('keeps the puzzle identity and dimensions', () => {
+    const base = makeProgress(4, 2)
+    base.puzzleId = '007'
+    const r = reset(fill(base, 1, 1))
+    expect(r.puzzleId).toBe('007')
+    expect(r.width).toBe(4)
+    expect(r.height).toBe(2)
   })
 })
 

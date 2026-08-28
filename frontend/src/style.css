@@ -58,6 +58,15 @@ body {
   margin-bottom: 16px;
 }
 
+/* Destructive action (reset) is visually distinct but still text-labelled. */
+.button-reset {
+  color: #b91c1c;
+}
+
+.button-reset:hover {
+  border-color: #b91c1c;
+}
+
 /* Toolbar: Fill / Mark / Clear mode selector */
 
 .toolbar {
