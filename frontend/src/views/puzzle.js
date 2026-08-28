@@ -1,5 +1,6 @@
 import { checkPuzzle, fetchPuzzle } from '../api.js'
 import { navigate } from '../router.js'
+import { createProgressStorage } from '../persistence.js'
 import {
   Action,
   CellState,
@@ -10,10 +11,13 @@ import {
   filledGrid,
 } from '../game.js'
 
-// Puzzle page (MVP0 / 9.x + MVP1 / 10.x + 11). Renders the grid with row and
-// column hints, keeps client-side game state, and handles input: a Fill /
-// Mark / Clear mode selector, mouse clicks and keyboard navigation. The board
-// is fully usable without right-click or hover (mobile rule, AR/Нанограммы).
+// Puzzle page (MVP0 / 9.x + MVP1 / 10.x + 11 + 14). Renders the grid with row
+// and column hints, keeps client-side game state, handles input (Fill / Mark
+// / Clear mode selector, mouse + touch + keyboard) and persists local progress
+// so it survives reloads. The board is fully usable without right-click or
+// hover (mobile rule, AR/Нанограммы).
+
+// Progress is saved per puzzle in browser storage (ROADMAP 14, AR-08).
 
 const MODES = [
   { action: Action.FILL, label: 'Закрасить', key: '1' },
@@ -308,8 +312,21 @@ export function renderPuzzle(container, id) {
 
   fetchPuzzle(id)
     .then((puzzle) => {
-      const progress = createEmptyProgress(puzzle)
-      progress.puzzleId = puzzle.id
+      const storage = createProgressStorage(globalThis.localStorage)
+
+      // Restore a saved progress for this puzzle when it still matches the
+      // puzzle's dimensions (14); otherwise start fresh.
+      let progress = storage.loadProgress(puzzle.id)
+      if (
+        progress &&
+        (progress.width !== puzzle.width || progress.height !== puzzle.height)
+      ) {
+        progress = null
+      }
+      if (!progress) {
+        progress = createEmptyProgress(puzzle)
+        progress.puzzleId = puzzle.id
+      }
 
       let current = progress
       let action = Action.FILL
@@ -324,6 +341,7 @@ export function renderPuzzle(container, id) {
       const onCell = (row, col) => {
         if (current.status === ProgressStatus.COMPLETED) return
         current = applyAction(current, action, row, col)
+        storage.saveProgress(current)
         const cellEl = content.querySelector(
           `[data-row="${row}"][data-col="${col}"]`,
         )
@@ -347,6 +365,7 @@ export function renderPuzzle(container, id) {
           const { correct } = await checkPuzzle(puzzle.id, filledGrid(current))
           if (correct) {
             current = complete(current)
+            storage.saveProgress(current)
             notice.textContent = 'Кроссворд решён!'
             notice.className = 'puzzle-notice notice-success'
           } else {
