@@ -291,17 +291,23 @@ The project must remain runnable with:
 docker compose up
 ```
 
-Do not add additional runtime services without a concrete requirement.
+The app is deployed by a single `docker compose` with two services of the same
+project:
 
+- `frontend` — nginx: serves the built SPA and proxies `/api` to the backend
+  (single public port on :8080, no CORS; nginx is the frontend server, not an
+  additional reverse proxy or gateway);
+- `backend` — Go API.
+
+Do not add additional runtime services without a concrete requirement.
 The MVP should not require:
 
 - database container;
 - Redis;
 - message broker;
-- reverse proxy;
-- Kubernetes.
+- Kubernetes;
 
-Prefer a multi-stage Docker build.
+Prefer multi-stage builds for both services.
 
 # 12. Configuration
 

@@ -822,30 +822,29 @@ Completion shown
 
 ### 24.1. Production build — [x]
 
-Архитектура MVP предполагает один runtime container.
+Архитектура MVP развёртывается одним `docker compose` с двумя сервисами:
+frontend (nginx) и backend (Go API). Этот вариант согласован вместо
+первоначального «единого контейнера» (см. Progress log).
 
 Pipeline:
 
 ```
-Frontend build
+Frontend build (Vite)
       ↓
-Static assets
+Static assets (dist)
       ↓
-Go build
-      ↓
-Single runtime image
-      ↓
-Go server
- ├── /api/v1/*
- └── /*
+nginx (frontend service)
+  ├── раздаёт статику
+  └── proxy /api → backend
+          ↓
+Backend (Go API, /api/v1/*)
+  └── data/puzzles
 ```
 
-- Создать Dockerfile.
-- Добавить frontend build stage.
-- Добавить Go build stage.
-- Создать минимальный runtime image.
-- Добавить data/puzzles.
-- Убедиться, что Go server раздаёт frontend assets.
+- `Dockerfile` (backend): multi-stage go build → minimal runtime; `data/puzzles` копируется в образ.
+- `frontend/Dockerfile`: frontend build (node) → nginx.
+- `frontend/nginx.conf`: раздача статики + proxy `/api` + SPA-fallback.
+- nginx проксирует `/api` на backend через docker network (один публичный порт, без CORS).
 
 ### 24.2. Docker Compose — [x]
 
