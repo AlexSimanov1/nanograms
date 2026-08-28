@@ -374,7 +374,7 @@ Application layer не знает, что данные находятся в JSO
 - Обработать server errors.
 - Добавить HTTP tests.
 
-### 7.2. Get puzzle
+### 7.2. Get puzzle — [x]
 
 `GET /api/v1/puzzles/{id}`
 
@@ -1073,25 +1073,26 @@ Next:
 
 Completed:
 
-- MVP0 / 7.1
+- MVP0 / 7.2
 
 Tests:
 
-- `go test ./...` — PASS (internal/http: TestListPuzzles, TestListPuzzlesServerError, TestHealth)
+- `go test ./...` — PASS (internal/http: TestGetPuzzle, TestGetPuzzleNotFound, TestGetPuzzleServerError, TestListPuzzles, TestListPuzzlesServerError, TestHealth)
 - `go vet ./...` — PASS
 - `gofmt` — clean
 - `go build ./cmd/server` — PASS
 
 Notes:
 
-- internal/http/handlers.go: DTO puzzleDTO (id/title/width/height/difficulty — без hints/solution, чтобы не раскрывать ответ и не отдавать лишнего), handler GET /api/v1/puzzles → {"puzzles":[...]}, при ошибке сервиса → 500.
-- internal/http/server.go: NewHandler(logger, service); регистрация /health и /api/v1/puzzles; Handlers struct.
-- cmd/server/main.go: wiring — PUZZLE_DIR (default data/puzzles) → JSONPuzzleRepository → PuzzleService → NewHandler.
-- Тесты handler — через stub-репозиторий (in-memory), изолированно от storage/файлов.
+- internal/http/handlers.go: puzzleDetailDTO (id/title/width/height/difficulty/rowHints/columnHints — БЕЗ solution), handleGetPuzzle GET /api/v1/puzzles/{id}; not-found → 404, ошибка сервиса → 500.
+- writeError расширен до (w, status, message) — для 404 и 500.
+- Маршрут GET /api/v1/puzzles/{id} зарегистрирован в server.go.
+- Решение: детальный DTO не отдаёт solution — ответ не раскрывается клиенту; это снимает вопрос из 13.1 (не молча отдавать ответ).
+- Тесты handler через stub-репозиторий (200 + состав DTO без solution, 404, 500).
 
 Next:
 
-- MVP0 / 7.2 — Get puzzle (HTTP endpoint)
+- MVP0 / 7.3 — API contract (зафиксировать примеры ответов, проверить frontend ↔ backend)
 
 ---
 
