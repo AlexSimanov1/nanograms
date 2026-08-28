@@ -184,7 +184,7 @@ data/
 
 Не создавать пустые абстракции, если они пока не используются.
 
-### 2.3. Реализовать HTTP server
+### 2.3. Реализовать HTTP server — [x]
 
 - Создать HTTP server.
 - Добавить конфигурацию port через environment variable или разумный default.
@@ -1073,26 +1073,26 @@ Next:
 
 Completed:
 
-- MVP0 / 2.1
-- MVP0 / 2.2
+- MVP0 / 2.3
 
 Tests:
 
-- `go test ./...` — PASS
+- `go test ./...` — PASS (включая internal/http TestHealth)
 - `go vet ./...` — PASS
 - `gofmt` — clean
+- `go build ./cmd/server` — PASS
+- Живая проверка: `GET /health` → 200, body `{"status":"ok"}`
 
 Notes:
 
-- 2.1: создан go.mod (module github.com/AlexSimanov1/nanograms, go 1.26.1, без зависимостей).
-- 2.1 и 2.2 выполнены вместе: условие 2.1 (`go test ./...`) требует наличие компилируемого пакета, создаваемого в 2.2.
-- 2.2: создана структура cmd/server, internal/{domain,application,storage,http}, data/puzzles.
-- В каждом Go-пакете минимальный doc.go (описание ответственности); функционального кода ещё нет — он добавится в 2.3+.
-- data/puzzles пока пуст (JSON появятся в 4.2).
+- internal/http/server.go: роутер (ServeMux) с endpoint GET /health.
+- cmd/server/main.go: точка входа, конфигурация HTTP_ADDR (default :8080), slog-логирование, graceful shutdown (SIGINT/SIGTERM + таймаут 10s), http.Server c ReadHeaderTimeout.
+- Только stdlib, без внешних зависимостей.
+- Приложение запускал и проверяю пользователь вручную вне Docker.
 
 Next:
 
-- MVP0 / 2.3 — реализовать HTTP server
+- MVP0 / 3.1 — создать Puzzle
 
 ---
 
