@@ -124,13 +124,16 @@ function columnHintsView(columnHints, width) {
   const el = document.createElement('div')
   el.className = 'board-colhints'
   el.style.gridTemplateColumns = `repeat(${width}, 1fr)`
-  for (const col of columnHints) {
+  columnHints.forEach((col, c) => {
     const cell = document.createElement('div')
     cell.className = 'board-hint board-hint-col'
+    // Extend the every-5th vertical grid marking up through the column hints
+    // band (ТЗ 2) so the thicker separator reads as one continuous line.
+    if (c > 0 && c % 5 === 0) cell.classList.add('cell--five-left')
     cell.setAttribute('role', 'columnheader')
     cell.append(hintNumbers(col))
     el.append(cell)
-  }
+  })
   return el
 }
 
@@ -139,13 +142,16 @@ function rowHintsView(rowHints, height) {
   const el = document.createElement('div')
   el.className = 'board-rowhints'
   el.style.gridTemplateRows = `repeat(${height}, 1fr)`
-  for (const row of rowHints) {
+  rowHints.forEach((row, r) => {
     const cell = document.createElement('div')
     cell.className = 'board-hint board-hint-row'
+    // Extend the every-5th horizontal grid marking left through the row hints
+    // band (ТЗ 2) so the thicker separator reads as one continuous line.
+    if (r > 0 && r % 5 === 0) cell.classList.add('cell--five-top')
     cell.setAttribute('role', 'rowheader')
     cell.append(hintNumbers(row))
     el.append(cell)
-  }
+  })
   return el
 }
 
@@ -218,6 +224,12 @@ function gridView(progress, onCell) {
       cell.setAttribute('role', 'gridcell')
       cell.dataset.row = r
       cell.dataset.col = c
+      // Grid marking (ТЗ 2): thicker separators after every 5th row/column.
+      // Interior junctions only (c>0 / r>0) — the outer border already uses
+      // the same strong slate, so the outer edges need no extra thickening.
+      // Behaviour-neutral decoration; game state is untouched.
+      if (c > 0 && c % 5 === 0) cell.classList.add('cell--five-left')
+      if (r > 0 && r % 5 === 0) cell.classList.add('cell--five-top')
       cell.tabIndex = r === 0 && c === 0 ? 0 : -1
       renderCell(cell, cells[r][c])
       grid.append(cell)

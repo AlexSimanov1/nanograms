@@ -270,7 +270,16 @@ body {
   display: grid;
   gap: 1px;
   background: #94a3b8;
-  padding: 1px 1px 0 0;
+  /* Mirror the grid's horizontal frame so the column tracks line up 1:1 with
+     the grid's (hint separators align exactly with the field lines). The 2px
+     left border matches the grid's thick left seam; the 1px right border
+     matches the grid's right frame; horizontal padding is dropped so the
+     total content width equals the grid's. */
+  border: 1px solid #64748b;
+  border-top: 0;
+  border-bottom: 0;
+  border-left-width: 2px;
+  padding: 1px 0 0 0;
 }
 
 .board-hint {
@@ -311,7 +320,15 @@ body {
   display: grid;
   gap: 1px;
   background: #94a3b8;
-  padding: 0 0 1px 1px;
+  /* Mirror the grid's vertical frame so the row tracks line up 1:1 with the
+     grid's. The 2px top border matches the grid's thick top seam; the 1px
+     bottom border matches the grid's bottom frame; the old bottom padding is
+     replaced by that border, leaving equal content height to the grid's. */
+  border: 1px solid #64748b;
+  border-left: 0;
+  border-right: 0;
+  border-top-width: 2px;
+  padding: 0 0 0 1px;
 }
 
 /* Grid cells (static for now; interactivity arrives in MVP1) */
@@ -320,7 +337,13 @@ body {
   display: grid;
   gap: 1px;
   background: #94a3b8;
+  /* Thick seam on the hint-facing edges (boundary between the hints and the
+     field, ТЗ 2): the top and left borders are widened to 2px so the every-5th
+     marking reads as one continuous line across the hint↔field boundary. The
+     outer right/bottom frame stays a normal 1px line. */
   border: 1px solid #64748b;
+  border-top: 2px solid #64748b;
+  border-left: 2px solid #64748b;
 }
 
 .cell {
@@ -346,6 +369,23 @@ body {
   outline: 2px solid #2563eb;
   outline-offset: -3px;
   z-index: 1;
+}
+
+/* Grid / hint marking (ТЗ 2): thicker, darker separators after every 5th
+   row/column, so a large board reads in blocks of 5 (5/10/15/20). Drawn with
+   border-box borders inside the element, so track/band outer sizes are
+   unchanged — the 1fr layout stays aligned. These classes are shared: the
+   grid cells and the row/column hint cells both carry them, so the same
+   every-5th line runs continuously across the cell↔hint boundaries (the grid
+   cells, column-hint cells and row-hint cells line up on the same tracks).
+   Interior junctions only; the outer edge already has the same strong slate
+   via the .board-* borders. */
+.cell--five-left {
+  border-left: 2px solid #64748b;
+}
+
+.cell--five-top {
+  border-top: 2px solid #64748b;
 }
 
 /* filled: solid fill */
