@@ -384,7 +384,7 @@ Application layer не знает, что данные находятся в JSO
 - Обработать malformed/invalid request.
 - Добавить HTTP tests.
 
-### 7.3. API contract
+### 7.3. API contract — [x]
 
 - Зафиксировать JSON response examples.
 - Обновить README/API documentation, если необходимо.
@@ -1073,26 +1073,22 @@ Next:
 
 Completed:
 
-- MVP0 / 7.2
+- MVP0 / 7.3
 
 Tests:
 
-- `go test ./...` — PASS (internal/http: TestGetPuzzle, TestGetPuzzleNotFound, TestGetPuzzleServerError, TestListPuzzles, TestListPuzzlesServerError, TestHealth)
-- `go vet ./...` — PASS
-- `gofmt` — clean
-- `go build ./cmd/server` — PASS
+- Документация-only изменение (код не менялся). Примеры ответов сверены с фактическим поведением запущенного сервера на 8080.
 
 Notes:
 
-- internal/http/handlers.go: puzzleDetailDTO (id/title/width/height/difficulty/rowHints/columnHints — БЕЗ solution), handleGetPuzzle GET /api/v1/puzzles/{id}; not-found → 404, ошибка сервиса → 500.
-- writeError расширен до (w, status, message) — для 404 и 500.
-- Маршрут GET /api/v1/puzzles/{id} зарегистрирован в server.go.
-- Решение: детальный DTO не отдаёт solution — ответ не раскрывается клиенту; это снимает вопрос из 13.1 (не молча отдавать ответ).
-- Тесты handler через stub-репозиторий (200 + состав DTO без solution, 404, 500).
+- API.md: зафиксирован HTTP-контракт (base /api/v1, application/json; GET /health; GET /api/v1/puzzles; GET /api/v1/puzzles/{id} + 404) с реальными примерами ответов и статус-кодами.
+- Явно зафиксировано: solution никогда не возвращается; в списке нет hints.
+- README.md: добавлена ссылка на API.md в раздел «Документация».
+- Фронтенд ещё не существует (8.x); frontend↔backend контракт будет проверен в вертикальном срезе 9.x.
 
 Next:
 
-- MVP0 / 7.3 — API contract (зафиксировать примеры ответов, проверить frontend ↔ backend)
+- MVP0 / 8.1 — создать frontend module
 
 ---
 
