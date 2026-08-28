@@ -1,788 +1,465 @@
 # CLAUDE.md
 
-## 1. Purpose
+## Project
 
-This repository is a small pet project for solving Japanese crosswords (nonograms) in a web browser.
+This is a small pet project for solving Japanese crosswords (nonograms).
 
-Code will often be written or modified by coding agents. Agents must optimize for:
+The project is intentionally simple.
 
-1. correctness;
-2. simplicity;
-3. maintainability;
-4. consistency with the existing architecture;
-5. small, reviewable changes.
+Before making architectural or product decisions, read:
 
-Do not introduce complexity unless it solves a concrete current problem.
+- `Нанограммы.md` — product requirements;
+- `Архитектура.md` — technical architecture.
 
----
-
-# 2. Product and architectural context
-
-The application is a **modular monolith**.
-
-The MVP has:
-
-- a Go backend;
-- a web frontend;
-- JSON files as the primary persistent source of puzzle data;
-- local browser storage for anonymous user progress;
-- one Docker Compose deployment;
-- one runtime application/container in the MVP.
-
-The intended architecture is:
-
-~~~text
-Browser
-├── Frontend
-└── Local progress
-        │
-       HTTP
-        │
-        ▼
-Go monolith
-├── HTTP/API
-├── Application
-├── Domain
-├── Storage
-└── Static frontend
-        │
-        ▼
-   JSON puzzle files
-~~~
-
-The frontend and backend are logically separate even though they are deployed together.
-
-Future separation should be possible:
-
-~~~text
-Frontend container/CDN
-        │
-       HTTP
-        │
-        ▼
-Go backend
-        │
-        ▼
-Storage
-~~~
-
-Do not design the MVP as microservices.
+This file contains instructions for coding agents.
 
 ---
 
-# 3. Core engineering principles
+# 1. General principles
 
-## 3.1. Prefer boring solutions
+## 1.1. Keep it simple
 
-Use the simplest implementation that satisfies the requirement.
+Prefer the simplest solution that correctly solves the current task.
+
+Do not introduce complexity for hypothetical future requirements.
 
 Prefer:
 
 - standard library;
-- small functions;
 - explicit data structures;
-- straightforward control flow;
-- local reasoning;
-- conventional project structure.
-
-Avoid introducing abstractions merely because they might be useful someday.
+- small functions;
+- clear control flow;
+- simple dependencies;
+- small, reviewable changes.
 
 ---
 
-## 3.2. Do not over-engineer the MVP
+## 1.2. Do not over-engineer
 
-Do not add:
+Do not introduce without an explicit requirement:
 
 - microservices;
+- databases;
+- Redis;
+- message brokers;
 - CQRS;
 - event sourcing;
-- message brokers;
-- Redis;
-- database infrastructure;
 - dependency injection frameworks;
 - generic repository frameworks;
-- elaborate domain-driven-design machinery;
-- unnecessary design patterns;
-- premature caching;
-- premature distributed-system concerns.
+- complex caching;
+- API gateways;
+- distributed infrastructure.
 
-If a feature does not require one of these, do not introduce it.
+This is a pet project.
 
 ---
 
-## 3.3. Preserve architectural boundaries
+# 2. Architecture
 
-The three important boundaries are:
+The application is a modular monolith.
 
-~~~text
+The important boundaries are:
+
+```text
 Frontend <-> HTTP API
 Application <-> Storage
-Application/Domain <-> Infrastructure
-~~~
+Domain <-> Infrastructure
+```
 
 Do not bypass these boundaries without a concrete reason.
 
-For example:
+## Frontend
 
-- frontend must not depend on Go implementation details;
-- domain logic must not read files directly;
-- application logic must not know JSON file paths;
-- HTTP handlers must not contain business logic.
+Frontend communicates with the backend only through HTTP.
 
----
+It must not know:
 
-# 4. Go backend rules
+- Go implementation details;
+- filesystem paths;
+- JSON storage internals.
 
-## 4.1. Standard library first
+## Backend
 
-Prefer Go standard library packages when they are sufficient.
+Backend is written in Go.
 
-Typical building blocks:
+Domain/application code must not directly access the filesystem.
 
-- `net/http`;
-- `encoding/json`;
-- `context`;
-- `errors`;
-- `fmt`;
-- `io`;
-- `os`;
-- `path/filepath`;
-- `time`;
-- `slog`.
+## Storage
 
-Add a third-party dependency only when it provides meaningful value that would otherwise require substantial code or introduce avoidable risk.
+Puzzle data is stored in JSON files.
 
-Before adding a dependency, ask:
+Storage implementation owns:
 
-> Can this be solved cleanly with the standard library?
+- filesystem access;
+- filenames;
+- directories;
+- JSON encoding/decoding.
 
-If yes, prefer the standard library.
+# 3. Go rules
 
----
+Use idiomatic Go.
 
-## 4.2. Keep packages focused
+Prefer the standard library.
 
-Packages should have clear responsibilities.
+Typical packages:
 
-Prefer a structure similar to:
+- net/http;
+- encoding/json;
+- context;
+- errors;
+- fmt;
+- os;
+- path/filepath;
+- time;
+- log/slog.
 
-~~~text
-cmd/
-internal/
-├── domain/
-├── application/
-├── storage/
-├── http/
-└── ...
-frontend/
-data/
-~~~
+Keep functions small and focused.
 
-The exact package names may evolve with the implementation, but responsibilities must remain clear.
+Prefer early returns.
 
-Do not create a package for every tiny concept.
+Handle errors explicitly.
 
----
+Wrap errors with useful context:
 
-## 4.3. Domain must not depend on infrastructure
-
-Domain types and rules should not import:
-
-- `os`;
-- filesystem-specific code;
-- HTTP packages;
-- JSON storage implementation;
-- frontend-specific code.
-
-The domain should be usable independently of how data is stored or transported.
-
----
-
-## 4.4. Storage behind explicit interfaces
-
-When application logic needs persistent data, depend on an appropriate interface rather than directly accessing files.
-
-Example:
-
-~~~go
-type PuzzleRepository interface {
-    Get(ctx context.Context, id string) (*Puzzle, error)
-    List(ctx context.Context) ([]Puzzle, error)
-}
-~~~
-
-The JSON implementation belongs to infrastructure/storage.
-
-Do not create generic abstractions such as:
-
-~~~go
-type Repository[T any] interface { ... }
-~~~
-
-unless a concrete need appears.
-
----
-
-## 4.5. Context
-
-Pass `context.Context` through application and I/O boundaries where appropriate.
-
-Do not store context in structs.
-
-Do not create contexts inside lower-level functions unless that function owns the lifetime by design.
-
----
-
-## 4.6. Errors
-
-Errors must be explicit and actionable.
-
-Prefer wrapping errors with context:
-
-~~~go
+```go
 return fmt.Errorf("load puzzle %q: %w", id, err)
-~~~
+```
 
-Do not silently ignore errors unless ignoring them is intentional and obvious.
+Do not silently ignore errors.
 
-Do not expose internal filesystem or implementation details directly through the HTTP API.
+Do not use global mutable state unless there is a strong reason.
 
-Map internal errors to appropriate HTTP responses at the HTTP boundary.
+Assume HTTP handlers may execute concurrently.
 
----
+# 4. Domain rules
 
-## 4.7. Concurrency
+Core puzzle logic belongs outside HTTP handlers and storage code.
 
-Assume the HTTP server may process requests concurrently.
+Domain logic should be deterministic and testable.
 
-Any shared mutable state must be deliberately synchronized.
+Examples:
 
-Do not introduce global mutable state unless there is a clear reason.
+- cell states;
+- puzzle validation;
+- clue calculations;
+- game state transitions;
+- solution checking.
 
-For MVP, prefer immutable puzzle data and stateless request handling.
+Do not make domain code depend on:
 
----
+- net/http;
+- filesystem;
+- JSON storage;
+- frontend.
 
-# 5. JSON storage rules
+# 5. Storage rules
 
-Puzzle content is stored as ordinary JSON files.
+Puzzle files live in a data directory similar to:
 
-Example:
-
-~~~text
+```text
 data/
 └── puzzles/
     ├── 001.json
     ├── 002.json
     └── ...
-~~~
+```
 
-Puzzle files should contain a format version:
+Do not hardcode puzzle content in Go source.
 
-~~~json
-{
-  "version": 1,
-  "id": "001",
-  "width": 10,
-  "height": 10,
-  "difficulty": "medium",
-  "rowHints": [],
-  "columnHints": [],
-  "solution": []
-}
-~~~
+Do not modify puzzle files during normal gameplay.
 
-Rules:
+Validate puzzle data when loading it.
 
-- do not hardcode puzzle content in Go source;
-- do not mutate puzzle files during normal gameplay;
-- validate puzzle data when loading it;
-- keep file format deterministic and human-readable;
-- avoid unnecessary fields;
-- do not build a migration framework unless the need actually appears.
+Puzzle format should contain a version.
 
-The puzzle repository owns knowledge about filenames, directories and JSON encoding.
+Do not build a migration framework unless a real format migration is required.
 
----
+If an interface is useful at the application/storage boundary, keep it small.
 
-# 6. User progress
+Do not create generic abstractions such as:
 
-MVP users are anonymous.
+```go
+type Repository[T any] interface { ... }
+```
 
-User progress should normally live in browser storage, not on the backend.
+without a concrete need.
 
-The backend should not acquire user/session persistence merely for convenience.
+# 6. HTTP API
 
-Future authenticated/server-side progress may be added later.
+The API uses:
 
-When implementing progress-related frontend code:
+```text
+/api/v1/
+```
 
-- make persistence resilient to page reloads;
-- keep the stored representation versionable;
-- do not couple progress storage to DOM structure;
-- keep puzzle content and user progress as separate concepts.
+Example endpoints:
 
----
+```text
+GET /api/v1/puzzles
+GET /api/v1/puzzles/{id}
+```
 
-# 7. HTTP API
+Handlers must remain thin.
 
-## 7.1. API is a real boundary
+A handler should:
 
-Even though frontend and backend are deployed together, communicate through HTTP.
+1. parse input;
+2. validate input;
+3. call application logic;
+4. map the result to an HTTP response.
 
-Do not call backend internals from frontend.
+Handlers must not:
 
-Use API paths such as:
+- read files directly;
+- implement puzzle rules;
+- know storage paths.
 
-~~~text
-/api/v1/puzzles
-/api/v1/puzzles/{id}
-~~~
+Breaking API changes are acceptable during MVP because frontend and backend are released together.
 
-For MVP, only version `v1` is needed.
+Do not maintain multiple API versions.
 
-Multiple simultaneously supported API versions are not required.
+# 7. Frontend rules
 
-Breaking API changes are acceptable while frontend and backend are released together.
+Frontend owns:
 
----
+- presentation;
+- interaction;
+- current UI state;
+- local progress;
+- timer;
+- mobile interaction.
 
-## 7.2. Keep handlers thin
+The frontend should not become the authoritative implementation of domain rules merely because some logic is convenient to write there.
 
-HTTP handlers should:
-
-1. parse and validate request input;
-2. call an application service;
-3. translate the result into an HTTP response.
-
-Handlers should not implement domain rules.
-
-Avoid:
-
-~~~text
-handler
- ├── read files
- ├── parse puzzle
- ├── validate puzzle
- ├── calculate domain result
- └── build response
-~~~
-
-Prefer:
-
-~~~text
-handler
-   ↓
-application service
-   ↓
-domain
-   ↓
-repository
-~~~
-
----
-
-## 7.3. DTOs at the HTTP boundary
-
-Do not automatically expose internal domain structs as API contracts.
-
-Use request/response types where that makes the boundary clearer.
-
-JSON serialization details should not leak into domain types unless there is a strong reason.
-
----
-
-# 8. Frontend rules
-
-The frontend is a separate logical application.
-
-It should:
-
-- communicate with the backend only through HTTP;
-- own presentation and interaction logic;
-- own local puzzle progress;
-- not know how JSON puzzle files are stored on the server;
-- not depend on Go internals.
-
-The UI should remain usable on:
-
-- desktop;
-- mobile portrait;
-- mobile landscape.
-
-20×20 is a normal supported puzzle size and must not be treated as an exceptional case.
-
----
-
-# 9. Game logic
-
-Puzzle-solving rules are important domain logic.
-
-Keep them deterministic and testable.
-
-Avoid implementing core puzzle rules directly inside:
-
-- HTTP handlers;
-- UI components;
-- filesystem code.
-
-A useful conceptual split is:
-
-~~~text
-Puzzle definition
-      ↓
-Game state
-      ↓
-Game/domain logic
-      ↓
-UI
-~~~
-
-The UI renders state; it should not become the authoritative source of puzzle rules.
-
----
-
-# 10. Mobile interaction
+20×20 is a normal supported puzzle size.
 
 Mobile is part of the MVP.
 
-The interaction model must not rely on:
+Do not rely on:
 
 - hover;
-- right mouse button;
-- keyboard-only shortcuts.
+- right-click;
+- keyboard-only interaction.
 
-The game should support:
+# 8. User progress
 
-- tap;
-- explicit fill/cross modes;
-- clearing cells;
-- drag where appropriate.
+Users are anonymous in the MVP.
 
-Any gesture implementation must be predictable and easy to undo.
+Progress is stored client-side.
 
-Do not add complicated gesture systems without a demonstrated UX need.
+Do not add backend sessions, authentication or user accounts just to persist game progress.
 
----
+Stored progress should:
 
-# 11. Testing
+- survive page reloads;
+- be associated with puzzle ID;
+- have a versionable structure;
+- fail gracefully if corrupted.
 
-Tests should be concentrated where they provide the most value.
+# 9. Testing
 
-### High priority
+Prioritize tests for:
 
+- domain logic;
 - puzzle validation;
 - puzzle loading;
-- domain/game logic;
-- clue/solution calculations;
-- state transitions;
-- API behavior;
-- important persistence behavior.
+- clue calculations;
+- game state transitions;
+- API behavior.
 
-### Lower priority
-
-Do not write large numbers of tests for trivial getters, simple wiring or framework behavior.
+Use table-driven tests when appropriate.
 
 Tests should be deterministic and fast.
 
-Prefer table-driven tests in Go where they improve readability.
+Do not spend excessive effort testing trivial wiring or framework behavior.
 
-Example:
+# 10. Dependencies
 
-~~~go
-tests := []struct {
-    name string
-    // ...
-}{
-    // ...
-}
-~~~
+Before adding a dependency, ask:
 
----
+> Can this be solved cleanly using the Go standard library?
 
-# 12. Validation
+If yes, use the standard library.
 
-Validate data at boundaries.
+A dependency should have a clear purpose and should not force a large architectural commitment.
 
-Examples:
+# 11. Docker
 
-- puzzle JSON must be structurally valid;
-- puzzle dimensions must be valid;
-- solution dimensions must match puzzle dimensions;
-- hints must be consistent with dimensions;
-- API input must be validated before application logic receives it.
+The project must remain runnable with:
 
-Do not rely on every caller being correct.
-
----
-
-# 13. Frontend/backend changes
-
-When changing an API contract:
-
-1. identify all frontend consumers;
-2. update backend and frontend together;
-3. update relevant tests;
-4. update documentation if the contract is externally meaningful.
-
-Do not preserve obsolete API behavior solely for hypothetical future clients.
-
-The MVP is a single coordinated application.
-
----
-
-# 14. Docker rules
-
-The repository must remain runnable with:
-
-~~~bash
+```text
 docker compose up
-~~~
+```
 
-The Docker setup should be straightforward.
-
-Prefer a multi-stage Dockerfile:
-
-~~~text
-frontend build
-      ↓
-Go build
-      ↓
-small runtime image
-~~~
-
-Do not add containers unless they solve a real requirement.
+Do not add additional runtime services without a concrete requirement.
 
 The MVP should not require:
 
-- database containers;
+- database container;
 - Redis;
-- message brokers;
-- reverse proxies;
-- orchestration platforms.
+- message broker;
+- reverse proxy;
+- Kubernetes.
 
----
+Prefer a multi-stage Docker build.
 
-# 15. Configuration
+# 12. Configuration
 
-Configuration should be explicit and minimal.
+Keep configuration minimal.
 
-Prefer environment variables for deployment-specific values such as:
+Prefer environment variables for:
 
 - HTTP listen address;
 - data directory;
-- logging level.
+- log level.
 
-Do not introduce a complex configuration framework.
+Provide sensible defaults.
 
-Provide sensible local defaults.
+The application should work with:
 
-The application should be easy to start with no configuration beyond:
-
-~~~bash
+```text
 docker compose up
-~~~
+```
 
----
+without requiring manual infrastructure setup.
 
-# 16. Logging
+# 13. Logging
 
-Logs should help diagnose real problems.
+Use structured logging where appropriate.
 
-Use structured logging where practical.
+Log meaningful events:
 
-Log:
+- startup;
+- configuration errors;
+- puzzle loading errors;
+- unexpected application/API errors.
 
-- server startup;
-- configuration problems;
-- failed puzzle loading;
-- unexpected request/application errors.
+Do not log every user interaction or every cell change.
 
-Do not log:
+Do not log sensitive information unnecessarily.
 
-- excessive per-cell gameplay events;
-- sensitive user information;
-- entire request bodies without a reason.
+# 14. Agent workflow
 
-Avoid noisy logs during normal puzzle solving.
+## Step 1: Inspect
 
----
+Before changing code:
 
-# 17. API and data compatibility
+- inspect the repository;
+- read relevant files;
+- inspect existing tests;
+- inspect related API/data structures;
+- check the current architecture.
 
-For the MVP:
+Do not assume that the repository exactly matches the documentation.
 
-- breaking changes are acceptable;
-- frontend and backend are released together;
-- do not maintain multiple API versions;
-- do not create compatibility layers for old internal structures.
+## Step 2: Plan
 
-However, data files should have explicit versions so that a future format change can be handled deliberately.
+For a non-trivial task, identify:
 
----
+- affected components;
+- required changes;
+- API/data contract changes;
+- tests that need to be added or changed.
 
-# 18. Code style
+Choose the smallest solution that satisfies the requirement.
 
-Write idiomatic Go.
+## Step 3: Implement
 
-Prefer:
+Make focused changes.
 
-- short functions with clear responsibilities;
-- early returns;
-- explicit error handling;
-- meaningful names;
-- small interfaces;
-- composition over inheritance-style abstractions;
-- comments explaining **why**, not what obvious code does.
+Do not refactor unrelated code.
 
-Avoid:
+Do not rewrite working code merely to make it look different.
 
-- clever one-liners;
-- unnecessary reflection;
-- global mutable state;
-- magic constants;
-- deeply nested conditionals;
-- huge files with unrelated responsibilities.
+## Step 4: Verify
 
-Run formatting tools before considering Go code complete.
+For backend changes, run:
 
-At minimum:
-
-~~~bash
-gofmt
-go vet
-go test ./...
-~~~
-
-Use additional project-specific checks if they exist.
-
----
-
-# 19. Dependency policy
-
-Before adding a dependency, verify:
-
-1. the standard library is insufficient;
-2. the dependency has a clear and narrow purpose;
-3. it is actively maintained or otherwise justified;
-4. it does not force a large architectural commitment.
-
-Do not add a dependency simply because it saves a few lines of code.
-
----
-
-# 20. Agent workflow
-
-When working on a task:
-
-## Step 1 — Understand
-
-Before editing code:
-
-- inspect the repository structure;
-- read relevant existing code;
-- identify existing architectural boundaries;
-- inspect tests;
-- inspect related API/data contracts.
-
-Do not assume the repository looks like the examples in this document.
-
-## Step 2 — Plan
-
-For non-trivial tasks, briefly identify:
-
-- what needs to change;
-- which modules are affected;
-- whether an API/data contract changes;
-- what tests are required.
-
-Prefer the smallest change that fully solves the task.
-
-## Step 3 — Implement
-
-Implement in small, coherent changes.
-
-Do not refactor unrelated code while implementing a feature unless the refactor is required to make the feature correct.
-
-## Step 4 — Verify
-
-Run appropriate checks.
-
-For backend changes, normally run:
-
-~~~bash
-go test ./...
+```text
+gofmt -w .
 go vet ./...
-gofmt -w ...
-~~~
+go test ./...
+```
 
-For frontend changes, run the project's formatter, linter and tests/build.
+Use the project’s actual frontend checks when changing frontend code.
 
-For integration changes, verify the Docker Compose workflow.
+If the build/runtime is affected, verify Docker Compose.
 
-## Step 5 — Review
+## Step 5: Review
 
 Before finishing, check:
 
-- Does the implementation follow the architecture?
-- Did I introduce unnecessary dependencies?
-- Did I add unnecessary abstraction?
+- Is the requested behavior implemented?
+- Are architectural boundaries preserved?
+- Did I introduce unnecessary abstraction?
+- Did I introduce an unnecessary dependency?
 - Did I accidentally couple frontend and backend?
-- Did I change an API or data format?
-- Are tests sufficient for the changed behavior?
-- Does the application still run with Docker Compose?
+- Did I change an API contract?
+- Did I change the puzzle data format?
+- Are relevant tests present?
+- Does the project still build and run?
 
----
+# 15. Architectural escalation
 
-# 21. Rules for autonomous coding agents
+Do not silently make fundamental architectural changes.
 
-Agents must not make broad architectural decisions silently.
+Stop and ask for clarification before introducing:
 
-If a task appears to require:
+- a database;
+- a new runtime service;
+- authentication;
+- server-side user state;
+- a major dependency;
+- a new API versioning strategy;
+- a fundamentally different storage model;
+- microservices;
+- a new deployment model.
 
-- adding a database;
-- introducing a new service;
-- changing the storage model;
-- changing the API versioning strategy;
-- adding a major dependency;
-- changing the deployment model;
-- breaking a fundamental architectural boundary;
+Ordinary implementation details should be decided autonomously.
 
-stop and explain the trade-off before proceeding, unless the user explicitly requested that architectural change.
+# 16. Change discipline
 
-For ordinary implementation decisions, proceed autonomously.
+Prefer:
 
-Prefer a small, working solution over a theoretically perfect one.
+```text
+small task
+   ↓
+small change
+   ↓
+tests
+   ↓
+verification
+```
 
----
+Avoid combining unrelated changes in one task.
 
-# 22. Definition of Done for code changes
+If a refactoring is required to implement the requested feature safely, keep it narrowly scoped and explain why it is necessary.
 
-A code change is considered complete when:
+# 17. Definition of Done
 
-- the requested behavior is implemented;
-- existing behavior is preserved unless intentionally changed;
-- the architecture remains consistent with this document;
-- relevant tests are added or updated;
-- formatting/linting checks pass;
-- no unnecessary dependencies were introduced;
-- no unrelated refactoring was included;
-- Docker Compose still works when the change affects the build/runtime;
-- the implementation is understandable to another developer.
+A task is complete when:
 
----
+- requested behavior works;
+- existing behavior remains intact unless intentionally changed;
+- relevant tests pass;
+- formatting/linting passes;
+- architecture remains consistent with `Архитектура.md`;
+- product behavior remains consistent with `Нанограммы.md`;
+- no unnecessary dependencies were added;
+- no unrelated refactoring was introduced;
+- Docker Compose still works when relevant.
 
-# 23. Final principle
+# 18. Priority when making decisions
 
-When in doubt, follow this priority order:
+When requirements do not provide a clear answer, use this order:
 
-1. **Correctness**
-2. **Simplicity**
-3. **Clear architectural boundaries**
-4. **Maintainability**
-5. **Performance**
-6. **Future extensibility**
+1. correctness;
+2. simplicity;
+3. architectural boundaries;
+4. maintainability;
+5. performance;
+6. future extensibility.
 
 Do not sacrifice simplicity for hypothetical future requirements.
 
-The project is a pet project first. Build only as much architecture as the current product actually needs.
+Build the system that is needed now, while keeping the important boundaries clean enough to evolve later.
