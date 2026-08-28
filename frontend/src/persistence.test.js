@@ -157,6 +157,40 @@ describe('persistence', () => {
     ])
   })
 
+  it('listStatuses is empty when nothing is stored', () => {
+    const storage = fakeStorage()
+    expect(createProgressStorage(storage).listStatuses()).toEqual({})
+  })
+
+  it('listStatuses returns one entry per saved puzzle', () => {
+    const storage = fakeStorage()
+    const s = createProgressStorage(storage)
+    s.saveProgress(fill(makeProgress('001'), 0, 0))
+    s.saveProgress(complete(fill(makeProgress('002'), 1, 1)))
+
+    expect(s.listStatuses()).toEqual({
+      '001': ProgressStatus.IN_PROGRESS,
+      '002': ProgressStatus.COMPLETED,
+    })
+  })
+
+  it('listStatuses skips corrupted records', () => {
+    const storage = fakeStorage()
+    storage.__setRaw(
+      JSON.stringify({
+        version: 1,
+        puzzles: {
+          '001': { puzzleId: '001', width: 2, height: 2, status: 'in_progress', cells: [[0, 0], [0, 0]] },
+          '002': { puzzleId: '002', width: 2, height: 2, status: 'bogus', cells: [[0, 0], [0, 0]] },
+          '003': 'not an object',
+        },
+      }),
+    )
+    expect(createProgressStorage(storage).listStatuses()).toEqual({
+      '001': ProgressStatus.IN_PROGRESS,
+    })
+  })
+
   it('a failed save does not throw and the session keeps working', () => {
     const storage = {
       getItem: () => null,

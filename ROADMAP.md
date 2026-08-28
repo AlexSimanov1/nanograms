@@ -630,13 +630,13 @@ current state == solution
 
 Для каждого puzzle поддержать: `not_started`, `in_progress`, `completed`.
 
-- Определять not_started.
-- Переводить в in_progress при начале решения.
-- Переводить в completed после успешной проверки.
-- Сохранять status.
-- Показывать status в каталоге.
-- Показывать Продолжить для in-progress puzzle.
-- Показывать Решён для completed puzzle.
+- Определять not_started. — [x]
+- Переводить в in_progress при начале решения. — [x]
+- Переводить в completed после успешной проверки. — [x]
+- Сохранять status. — [x]
+- Показывать status в каталоге. — [x]
+- Показывать Продолжить для in-progress puzzle. — [x]
+- Показывать Решён для completed puzzle. — [x]
 
 ---
 
@@ -1067,6 +1067,33 @@ Next:
 **Progress**
 
 <!-- AGENTS: append progress entries below this line -->
+
+## 2026-08-29 — Agent
+
+Completed:
+
+- MVP1 / 15 — Puzzle status (показ статуса в каталоге: Начать / Продолжить / Решён).
+
+Tests:
+
+- `npm test` (Vitest) — PASS: 35 тестов (добавлены `listStatuses` в persistence.test.js и `catalog.test.js` на `statusMeta`).
+- `npm run build` — PASS (11 модулей; `dist/assets/index-CiAH5SIO.js`).
+- `docker compose build frontend && up` — PASS: `:8080` раздаёт свежий bundle, код статусов присутствует.
+
+Notes:
+
+- **Переходы статусов уже были реализованы** (game.js 10.1/10.2: первое изменение → `in_progress`, `complete()` → `completed`) и **status уже сохранялся** в persistence (задача 14). В 15 добавлено только отображение статуса в каталоге.
+- `persistence.js`: новый метод `listStatuses()` → `{ [puzzleId]: status }` для всех валидных сохранённых записей (битые записи пропускаются). Вынесен в фабрику `createProgressStorage`.
+- `views/catalog.js`: чистая экспортируемая `statusMeta(status)` → `{ statusLabel, actionLabel }`: `not_started` → «Не начат» / «Начать», `in_progress` → «В процессе» / «Продолжить», `completed` → «Решён» / «Решён»; неизвестный статус → дефолт `not_started`. `puzzleCard` получает статус из `listStatuses()` (`?? NOT_STARTED`) и выводит строку «Статус · Действие».
+- `style.css`: `.puzzle-card-status` — статус текстом (не только цветом, a11y): `completed` зелёный, `in_progress` синий.
+- Каталог перечитывает статусы при каждом рендере (при возврате из кроссворда навигация вызывает `renderCatalog` заново) — после completion статус обновляется корректно.
+- Тестируемость без jsdom сохранена: `statusMeta` — чистая функция; `listStatuses` покрыт через fake storage.
+
+Next:
+
+- MVP1 / 16 — Timer (model + tests): `startedAt` / `elapsedTime` / `completedAt` в модели прогресса, таймер в UI, восстановление после reload.
+
+---
 
 ## 2026-08-29 — Agent
 

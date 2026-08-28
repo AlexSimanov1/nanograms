@@ -1,5 +1,18 @@
 import { fetchPuzzles } from '../api.js'
 import { navigate } from '../router.js'
+import { createProgressStorage } from '../persistence.js'
+import { ProgressStatus } from '../game.js'
+
+// Catalog status meta (ROADMAP 15): how a puzzle's progress shows in the list.
+export const STATUS_META = {
+  [ProgressStatus.NOT_STARTED]: { statusLabel: 'Не начат', actionLabel: 'Начать' },
+  [ProgressStatus.IN_PROGRESS]: { statusLabel: 'В процессе', actionLabel: 'Продолжить' },
+  [ProgressStatus.COMPLETED]: { statusLabel: 'Решён', actionLabel: 'Решён' },
+}
+
+export function statusMeta(status) {
+  return STATUS_META[status] ?? STATUS_META[ProgressStatus.NOT_STARTED]
+}
 
 function loadingView() {
   const el = document.createElement('div')
@@ -32,7 +45,7 @@ function emptyView() {
   return el
 }
 
-function puzzleCard(puzzle) {
+function puzzleCard(puzzle, status) {
   const card = document.createElement('a')
   card.className = 'puzzle-card'
   card.href = `#/puzzles/${encodeURIComponent(puzzle.id)}`
@@ -49,7 +62,14 @@ function puzzleCard(puzzle) {
   meta.className = 'puzzle-card-meta'
   meta.textContent = `${puzzle.width}×${puzzle.height} · ${puzzle.difficulty}`
 
-  card.append(title, meta)
+  // Status reflects saved progress (15): "Решён" also works as the action link.
+  const { statusLabel, actionLabel } = statusMeta(status)
+  const statusLine = document.createElement('p')
+  statusLine.className = 'puzzle-card-status'
+  statusLine.dataset.status = status
+  statusLine.textContent = `${statusLabel} · ${actionLabel}`
+
+  card.append(title, meta, statusLine)
   return card
 }
 
@@ -62,10 +82,12 @@ export function renderCatalog(container) {
         container.replaceChildren(emptyView())
         return
       }
+      const statuses =
+        createProgressStorage(globalThis.localStorage).listStatuses()
       const list = document.createElement('div')
       list.className = 'puzzle-list'
       for (const p of puzzles) {
-        list.append(puzzleCard(p))
+        list.append(puzzleCard(p, statuses[p.id] ?? ProgressStatus.NOT_STARTED))
       }
       container.replaceChildren(list)
     })

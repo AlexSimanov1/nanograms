@@ -88,6 +88,20 @@ export function createProgressStorage(storage = globalThis.localStorage) {
     return normalizeRecord(record)
   }
 
+  // Load the status of every saved puzzle as { [puzzleId]: status }. Corrupted
+  // records are skipped so a bad entry never hides or mislabels the catalog.
+  function listStatuses() {
+    const doc = readDocument(storage)
+    if (!doc) return {}
+    const out = {}
+    for (const [id, record] of Object.entries(doc.puzzles)) {
+      if (isRecordValid(record, id)) {
+        out[id] = record.status
+      }
+    }
+    return out
+  }
+
   // Persist the current progress for one puzzle, merging it into the store so
   // other puzzles' progress is never overwritten.
   function saveProgress(progress) {
@@ -110,5 +124,5 @@ export function createProgressStorage(storage = globalThis.localStorage) {
     }
   }
 
-  return { loadProgress, saveProgress }
+  return { loadProgress, saveProgress, listStatuses }
 }

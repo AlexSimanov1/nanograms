@@ -118,6 +118,22 @@ body {
   color: #52525b;
 }
 
+/* Puzzle status in the catalog (15). Status is shown as text, not colour
+   alone, and completed is pulled out with an accent. */
+.puzzle-card-status {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.puzzle-card-status[data-status='completed'] {
+  color: #15803d;
+}
+
+.puzzle-card-status[data-status='in_progress'] {
+  color: #2563eb;
+}
+
 /* Puzzle page */
 
 .puzzle-title {
