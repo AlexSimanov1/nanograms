@@ -5,10 +5,13 @@
 
 ## Запуск
 
-Для запуска проекта требуется Docker.
+Всё собирается и запускается через Docker. Локальные npm/go не требуются —
+установите только [Docker](https://www.docker.com/).
+
+Самая короткая команда — запуск всего приложения:
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 После запуска приложение доступно по адресу `http://localhost:8080`.
@@ -21,13 +24,23 @@ docker compose up
 Из браузера наружу публикуется только порт `8080` (frontend), поэтому приложение
 работает как единая точка входа без CORS.
 
-При изменении frontend/backend пересобрать образы:
+Для удобства есть корневой `Makefile` — единая точка входа, не зависящая от
+установленных инструментов:
 
 ```bash
-docker compose up --build
+make up    # = docker compose up --build (собрать и запустить)
+make down  # = docker compose down
+make build # = docker compose build (только пересобрать образы)
+make logs  # = docker compose logs -f
 ```
 
-### Разработка (локально, без Docker)
+При изменении frontend/backend пересобрать образы тем же `make up` /
+`docker compose up --build`.
+
+### Разработка (необязательно, локально без Docker)
+
+Для локальной разработки удобнее запускать frontend и backend отдельно —
+без основных сборок в контейнерах:
 
 - Backend: `go run ./cmd/server` → API на `:8080`.
 - Frontend: `cd frontend && npm install && npm run dev` → Vite dev-сервер на `:5173`
