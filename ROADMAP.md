@@ -235,7 +235,7 @@ GET /health
 - Не использовать произвольные строки по всему приложению.
 - Добавить тесты для допустимых состояний.
 
-### 3.3. Создать PuzzleProgress
+### 3.3. Создать PuzzleProgress — [x]
 
 Модель должна отражать:
 
@@ -1073,24 +1073,25 @@ Next:
 
 Completed:
 
-- MVP0 / 3.2
+- MVP0 / 3.3
 
 Tests:
 
-- `go test ./...` — PASS (включая internal/domain TestCellStateValid, TestCellStateString)
+- `go test ./...` — PASS (internal/domain: ProgressStatus, NewPuzzleProgress, Start, SetCell, Complete, Reset)
 - `go vet ./...` — PASS
 - `gofmt` — clean
 
 Notes:
 
-- internal/domain/cellstate.go: тип CellState (int) с константами CellEmpty, CellFilled, CellMarked («крестик», в PRD — cross).
-- Безопасные значения: константы вместо произвольных строк.
-- Valid() — проверка, что значение определённое; String() — стабильное имя (empty/filled/marked, иначе CellState(n)) для логов/ошибок.
-- Не смешано с HTTP; зависит только от stdlib.
+- internal/domain/progressstatus.go: тип ProgressStatus (not_started/in_progress/completed) + Valid()/String().
+- internal/domain/puzzleprogress.go: модель PuzzleProgress (PuzzleID, Cells [][]CellState, Status, StartedAt, ElapsedTime, CompletedAt).
+- Правила переходов как методы: NewPuzzleProgress (пустое поле под размеры Puzzle), Start (not_started→in_progress), SetCell (границы + валидность состояния + блокировка изменения completed), Complete (in_progress→completed, no-op из not_started), Reset (очистка поля, сброс статуса и времён).
+- Детерминированность: время передаётся параметром «now», time.Now() внутри нет — тесты детерминированы.
+- Статусы не_started/in_progress/completed — как в 15.x.
 
 Next:
 
-- MVP0 / 3.3 — создать PuzzleProgress
+- MVP0 / 4.1 — зафиксировать JSON schema v1
 
 ---
 
