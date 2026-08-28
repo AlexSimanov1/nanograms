@@ -323,7 +323,7 @@ type PuzzleRepository interface {
 - Разместить interface на уровне, который не зависит от JSON implementation.
 - Не добавлять CRUD, если он не нужен MVP.
 
-### 5.2. Реализовать JSONPuzzleRepository
+### 5.2. Реализовать JSONPuzzleRepository — [x]
 
 - Читать puzzles из data/puzzles.
 - Декодировать JSON.
@@ -1073,24 +1073,24 @@ Next:
 
 Completed:
 
-- MVP0 / 5.1
+- MVP0 / 5.2
 
 Tests:
 
-- `go test ./...` — PASS
+- `go test ./...` — PASS (internal/storage: Get, GetMissing, GetInvalidJSON, List)
 - `go vet ./...` — PASS
 - `gofmt` — clean
 
 Notes:
 
-- internal/application/repository.go: интерфейс PuzzleRepository { Get(ctx, id) (*domain.Puzzle, error); List(ctx) ([]domain.Puzzle, error) } — контракт из ROADMAP.
-- Размещён в application-слое (там, где используется), не зависит от JSON-реализации (AR-05).
-- storage будет реализовывать его соответствием методов (импортировать интерфейс не нужно), wiring — в cmd/server.
-- Без CRUD сверх MVP. Тестов нет — тривиальный интерфейс, покроется реализацией и компиляцией в 5.2.
+- internal/storage/errors.go: ErrPuzzleNotFound (для маппинга в 404 на 7.x).
+- internal/storage/jsonrepository.go: JSONPuzzleRepository(dir, log); Get = id.json → DecodePuzzle → ErrPuzzleNotFound при отсутствии; List = обход *.json, skip битых файлов + warn-лог (не роняет каталог).
+- Compile-time проверка в тестах: JSONPuzzleRepository удовлетворяет application.PuzzleRepository (тест-only импорт, прод-код не связан).
+- Задача выполнена целиком без дробления (по договорённости с пользователем — единый связный пункт).
 
 Next:
 
-- MVP0 / 5.2 — реализовать JSONPuzzleRepository
+- MVP0 / 6.1 — Puzzle service (application layer)
 
 ---
 
