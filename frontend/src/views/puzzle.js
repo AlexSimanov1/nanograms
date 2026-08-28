@@ -308,7 +308,12 @@ function boardView(puzzle, progress, onCell) {
 }
 
 // The Fill / Mark / Clear tool selector. Always visible so the current mode
-// is obvious (20.2). Keyboard shortcuts 1/2/3 switch the mode.
+// is obvious (20.2). The active mode is shown not only by colour but also by
+// a "✓" marker, and keyboard shortcuts 1/2/3 switch the mode.
+function modeLabel({ label, key }, active) {
+  return `${active ? '✓ ' : ''}${label} (${key})`
+}
+
 function toolbarView(currentAction, onMode) {
   const bar = document.createElement('div')
   bar.className = 'toolbar'
@@ -325,8 +330,10 @@ function toolbarView(currentAction, onMode) {
       btn.setAttribute('aria-pressed', 'false')
     }
     btn.type = 'button'
-    btn.textContent = `${label} (${key})`
+    btn.textContent = modeLabel({ label, key }, action === currentAction)
     btn.dataset.action = action
+    btn.dataset.label = label
+    btn.dataset.key = key
     btn.addEventListener('click', () => onMode(action))
     bar.append(btn)
   }
@@ -345,6 +352,7 @@ function syncToolbar(bar, action) {
     const active = btn.dataset.action === action
     btn.classList.toggle('tool-button-active', active)
     btn.setAttribute('aria-pressed', String(active))
+    btn.textContent = modeLabel(btn.dataset, active)
   }
 }
 
@@ -385,9 +393,19 @@ export function renderPuzzle(container, id) {
       let current = progress
       let action = Action.FILL
 
-      const toolbar = toolbarView(action, (a) => {
+      const setAction = (a) => {
         action = a
         syncToolbar(toolbar, action)
+      }
+      const toolbar = toolbarView(action, setAction)
+
+      // Switch the active mode from the keyboard by 1/2/3 (20.2). Attached to
+      // the page node so the listener dies on navigation (no leak); arrows and
+      // Space/Enter inside the grid are handled separately in gridView.
+      wrap.addEventListener('keydown', (e) => {
+        const mode = MODES.find((m) => m.key === e.key)
+        if (!mode) return
+        setAction(mode.action)
       })
 
       // A solved puzzle no longer accepts gesture/click edits (13.2); the
