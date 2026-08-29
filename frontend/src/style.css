@@ -288,6 +288,15 @@ body {
   background: #eef2f7;
 }
 
+/* Active line hints (ТЗ 3): the numbers of the active cell's row and column
+   get a light background. Soft blue — in the same family as the active-cell
+   outline but much lighter; reads clearly on top of both .board-hint and
+   .board-hint--alt (higher specificity so it always wins). Text stays dark for
+   contrast. */
+.board-hint.board-hint--active {
+  background: #dbeafe;
+}
+
 .cell {
   position: relative;
   background: #ffffff;

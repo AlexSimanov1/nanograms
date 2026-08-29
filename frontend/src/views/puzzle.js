@@ -150,7 +150,7 @@ function focusCell(grid, row, col, height, width) {
 // rule). `touch-action: none` on cells (CSS) keeps a touch-drag from scrolling
 // or zooming the page instead of painting. Hint header cells are skipped —
 // input targets only `.cell`.
-function wireBoardInput(board, progress, onCell) {
+function wireBoardInput(board, progress, onCell, onHoverCell) {
   const { width, height } = progress
 
   // A pointer is dragging across the board only while a button is held.
@@ -178,6 +178,7 @@ function wireBoardInput(board, progress, onCell) {
     // preventDefault above suppresses the default mouse focus, so set it here.
     cell.focus()
     paint(cell)
+    if (onHoverCell) onHoverCell(cell)
     lastKey = cellKey(cell)
   })
 
@@ -193,6 +194,7 @@ function wireBoardInput(board, progress, onCell) {
     const key = cellKey(cell)
     if (key === lastKey) return
     paint(cell)
+    if (onHoverCell) onHoverCell(cell)
     lastKey = key
   })
 
@@ -244,6 +246,11 @@ function boardView(puzzle, progress, onCell) {
   const rMax = Math.max(0, ...rowHints.map((r) => r.length))
   const cMax = Math.max(0, ...columnHints.map((c) => c.length))
 
+  // Reference lists of the hint-number cells, indexed by row/column, so the
+  // active row/column's hints can be highlighted in O(#hints) per change (ТЗ 3).
+  const rowHintsEls = rowHints.map(() => [])
+  const colHintsEls = columnHints.map(() => [])
+
   const board = document.createElement('div')
   board.className = 'puzzle-board'
   board.setAttribute('role', 'grid')
@@ -269,6 +276,7 @@ function boardView(puzzle, progress, onCell) {
       cell.style.gridColumn = rMax + j + 1
       if (j > 0 && j % 5 === 0) cell.classList.add('cell--five-left')
       if (j % 2 === 1) cell.classList.add('board-hint--alt')
+      colHintsEls[j].push(cell)
       board.append(cell)
     })
   })
@@ -284,6 +292,7 @@ function boardView(puzzle, progress, onCell) {
       cell.style.gridColumn = rMax - nums.length + k + 1
       if (i > 0 && i % 5 === 0) cell.classList.add('cell--five-top')
       if (i % 2 === 1) cell.classList.add('board-hint--alt')
+      rowHintsEls[i].push(cell)
       board.append(cell)
     })
   })
@@ -311,7 +320,39 @@ function boardView(puzzle, progress, onCell) {
     }
   }
 
-  wireBoardInput(board, progress, onCell)
+  // Active row/column highlight (ТЗ 3): when a cell is active, its row's and
+  // column's hint numbers get a light background. Driven by the same "active
+  // cell" per input modality — hover (mouse; follows the cursor, incl. drag),
+  // focus (keyboard arrows, touch tap) — with the last active signal winning
+  // (R2). Purely visual; game state is untouched (R5).
+  const ACTIVE_HINT = 'board-hint--active'
+  function setActiveLine(r, c) {
+    for (const el of board.querySelectorAll(`.${ACTIVE_HINT}`)) {
+      el.classList.remove(ACTIVE_HINT)
+    }
+    if (r == null || c == null) return
+    const rowEls = rowHintsEls[r]
+    if (rowEls) for (const el of rowEls) el.classList.add(ACTIVE_HINT)
+    const colEls = colHintsEls[c]
+    if (colEls) for (const el of colEls) el.classList.add(ACTIVE_HINT)
+  }
+
+  function setActiveFromCell(el) {
+    const cell = el && el.closest('.cell')
+    if (!cell) return
+    setActiveLine(Number(cell.dataset.row), Number(cell.dataset.col))
+  }
+
+  board.addEventListener('pointerover', (e) => setActiveFromCell(e.target))
+  board.addEventListener('pointerout', (e) => {
+    if (!board.contains(e.relatedTarget)) setActiveLine(null, null)
+  })
+  board.addEventListener('focusin', (e) => setActiveFromCell(e.target))
+  board.addEventListener('focusout', (e) => {
+    if (!board.contains(e.relatedTarget)) setActiveLine(null, null)
+  })
+
+  wireBoardInput(board, progress, onCell, setActiveFromCell)
   return board
 }
 
