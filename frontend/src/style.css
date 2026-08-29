@@ -304,13 +304,40 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Active cell (20.1): the focused/last-touched cell is outlined even on
-   mouse/touch — the default :focus-visible only fires for keyboard input.
-   -3px offset keeps the ring inside the 1px grid gutter (no neighbour glare). */
-.cell:focus {
+/* Active cell: which cell shows the outline depends on the input modality
+   (R5). The mouse treats the cell under the cursor as active (.cell:hover), the
+   keyboard shows :focus-visible, and touch (no hover, and browsers never match
+   :focus-visible for a tap) keeps the plain :focus outline. All three sit at
+   -3px so the ring stays inside the 1px grid gutter (no neighbour glare). */
+
+/* Keyboard focus on a cell: matches only keyboard-initiated focus. */
+.cell:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: -3px;
   z-index: 1;
+}
+
+/* Touch "active on tap" (R5): scoped to non-hover/coarse devices so a mouse
+   click never leaves a lingering blue outline on the last-clicked cell. */
+@media (hover: none), (pointer: coarse) {
+  .cell:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: -3px;
+    z-index: 1;
+  }
+}
+
+/* Mouse active cell = the one under the cursor (R1–R4). Only on real
+   hover-capable pointers: :hover follows the cursor (including during drag,
+   since pointer capture does not change hit-testing) and clears itself when
+   the pointer leaves the field. A soft blue so it reads as "highlight" while
+   staying visibly lighter than the strong focus outline. */
+@media (hover: hover) and (pointer: fine) {
+  .cell:hover {
+    outline: 2px solid #60a5fa;
+    outline-offset: -3px;
+    z-index: 1;
+  }
 }
 
 /* Grid / hint marking (ТЗ 2): thicker, darker separators after every 5th
